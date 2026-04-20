@@ -1,0 +1,102 @@
+# ESMF Code Conventions
+The following document contains a compilation of conventions and guidelines to format, structure and
+write code for the ESMF VS Code Plugin.
+
+## General Conventions
+Our code conventions are loosely based on the [Google Java Style
+Guide](https://google.github.io/styleguide/javaguide.html) but detailed and adjusted for the needs
+of the ESMF VS Code Plugin. The code style is described using the Eclipse code style formatter XML and can be
+found in the file `.development/esmf-eclipse-codestyle.xml`.
+
+* If you develop using the Eclipse IDE, you can import this file as project code style.
+* If you develop using IntelliJ, you can install the (third part) "Adapter for Eclipse Code
+  Formatter" plugin, then configure the plugin to use the file.
+* In any way, you can use `mvn spotless:check` to validate the code style of current state of your
+  copy of the code base; and `mvn spotless:apply` to automatically apply the code style to the whole
+  code base.
+
+Additional conventions are described using [Checkstyle](https://checkstyle.sourceforge.io/) which can
+be found in the file `.development/esmf-checkstyle.xml`. You can validate if your code adheres to the
+rules using `mvn checkstyle:check`.
+
+Furthermore, the files `.development/esmf-intellij-codestyle.xml` and
+`.development/esmf-intellij-inspections.xml` are provided that can be
+[imported](https://www.jetbrains.com/help/idea/configuring-code-style.html#import-export-schemes) in
+the Java code style settings and
+[imported](https://www.jetbrains.com/help/idea/inspections-settings.html#profile_management) in the
+Inspections, respectively, in the IntelliJ IDEA IDE. Note however, that there might be slight
+differences in automatic formatting due to technical limitations; the leading code style description
+is esmf-eclipse-codestyle.xml as described above.
+
+## Copyright header
+See [CONTRIBUTING](CONTRIBUTING.md)
+
+## Code Recommendations
+
+### Utility Classes
+[Utility classes](https://wiki.c2.com/?UtilityClasses) as such should be avoided - domain concepts
+must be expressed in domain classes. Thus, only for "real", non-domain operations not belonging to
+any class, utility methods and classes may be used. However, chances are pretty close to 100% that
+all of everyday utility needs are already covered by high-quality 3rd-party libraries.
+
+Usually we apply the following rule to decide on the introduction of new libraries
+1. Check your framework's and its dependency's utility/static constants classes (e.g. Spring or Vert.x)
+2. If not covered, use Guava (https://github.com/google/guava/wiki)
+3. If not covered, use Apache Commons (usually .lang module, https://commons.apache.org)
+4. If really not covered, write your own (highly unlikely)
+
+### Optional<> usage
+The Optional<> type, common for some time in Guava and in the Java core since Version 8, has found
+widespread use for return values, however still a lot of discussions emerge concerning a fitting
+scope of usage. You may not return null where an Optional<> is expected Whenever an Optional<> is
+passed, you may safely assume it to be non-null. So the following snippet must never appear
+anywhere:
+```
+if (someOptional != null && someOptional.isPresent()) ...
+```
+
+* Using Optional<> as return types for values that might be missing is always fine
+* Using Optional<> for fields is fine (see notes about "Avoid optionality" though)
+* Using Optional<> for method parameters is fine (see notes about "Avoid optionality" though)
+* Writing if-Statements checking for a present instance (and calling .get() explicitly) is considered an anti-pattern. You should
+  1. Use .map() or .ifPresent() functional style patterns
+  2. Use .orElse*() methods for clearly defined fallbacks (or exceptions)
+* When having collections/streams of Optionals use .filter(Optional::isPresent) accordingly
+* Using Optional.ofNullable(someValue).orElseThrow() to create one-liner check/assignment combinations is considered an anti-pattern.
+* You should be using Objects.requireNonNull() for those sort of checks (or Guava's Preconditions if you're having more types of assertions than non-null and aim for a maximum of consistency).
+
+### Lombok
+Lombok was used in the past, but is not used anymore in the ESMF VS Code Plugin. Instead of the `@Value` or
+`@Data` annotations, consider using Java records.
+
+## Documentation
+
+### Source Code Documentation
+Public classes and interfaces should carry appropriate JavaDoc explaining the responsibility of the
+class. All public methods except getters/setters/toString etc. must be documented as well. Private
+methods should be simple enough and well-named such that they don't need documentation. If
+appropriate they of course may be documented as well. Inline comments, especially those that merely
+separate logical blocks of code, must be avoided as they are usually an indicator that a private
+method can be extracted or that bad naming was used that needs explaining.
+
+### Developer Documentation
+Developer documentation is put into a README.md placed in the project root. This should contain documentation like:
+* Checking out the source code and getting it to run/build
+* Mandatory (external system) dependencies and how to set them up (e.g. databases)
+* Configuration options and how to apply them
+* General important concepts that are relevant to working on the project but are not directly obvious from the source code
+itself. Links to further readings and information, e.g. wiki or other external sources.
+
+### User documentation
+User documentation (this includes technical documentation on how to use an application or tool from the project) should be on
+its own.
+It is written in AsciiDoc, rendered with [Antora](https://antora.org) and the generated static content is
+publically hosted for direct user access.
+The source files of the documentation are placed in a subfolder /documentation from the project root.
+Documentation is structured so that it can be processed by Antora. This e.g. involves structuring the documentation files
+according to [Antora's specification](https://docs.antora.org/antora/2.3/organize-content-files/) and organizing resources
+so that Antora [can handle them](https://docs.antora.org/antora/2.3/page/resource-id/).
+[AsciiDoc's syntax](https://docs.antora.org/antora/2.3/asciidoc/asciidoc/) is pretty close to Markdown, however it is
+way more targeted towards writing fully fledged documents and with its multitude of backends (HTML, PDF, ...) it is a
+very good source format.
+Publishing is realized by means of [Github pages](https://docs.antora.org/antora/2.3/publish-to-github-pages/).
