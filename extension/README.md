@@ -33,7 +33,7 @@ The extension starts the server from `../lsp-server/target/lsp-server.jar`.
 2. In this extension project, install dependencies with `npm install`.
 3. Compile the extension with `npm run compile`.
 4. Press `F5` in VS Code to open an Extension Development Host.
-5. Open a Turtle file such as [samples/valid.ttl](/Users/Evgenii_Filchenko/vs-code-project/extension/samples/valid.ttl) or your Aspect model file.
+5. Open a Turtle file such as [samples/valid.ttl](samples/valid.ttl) or your Aspect model file.
 
 If the server JAR is missing, the extension shows an error and does not start the language client.
 
