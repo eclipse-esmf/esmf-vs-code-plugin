@@ -1,21 +1,18 @@
 import * as vscode from 'vscode';
 
 export const VALIDATE_DOCUMENT_REQUEST = 'turtle/aspectValidation/validateDocument';
-export const VALIDATE_DOCUMENT_COMMAND = 'turtleLsp.validateAspectModelNow';
+export const VALIDATE_DOCUMENT_COMMAND = 'turtleLsp.validateDocumentNow';
 const STATUS_MESSAGE_TIMEOUT_MS = 5000;
 
 export type AspectValidationTrigger = 'manual' | 'save';
 
-export interface AspectValidationError {
-    type?: string;
-    message?: string;
+export interface TurtleDiagnostic {
+    code: string;
+    message: string;
 }
 
-export interface AspectValidationResult {
-    valid?: boolean;
-    report?: string;
-    violations?: Array<unknown>;
-    error?: AspectValidationError | null;
+export interface DiagnosticReport {
+    diagnostics: Array<TurtleDiagnostic>
 }
 
 export interface RequestClient {
@@ -42,14 +39,16 @@ export interface ValidationOutputChannel {
 }
 
 export class AspectValidationController {
-    private readonly inFlightKeys = new Set<string>();
-
     constructor(
-        private readonly client: RequestClient,
+        private client: RequestClient,
         private readonly window: ValidationWindow,
         private readonly workspace: ValidationWorkspace,
         private readonly outputChannel: ValidationOutputChannel,
     ) {}
+
+    setClient(client: RequestClient): void {
+        this.client = client;
+    }
 
     register(context: vscode.ExtensionContext): void {
         context.subscriptions.push(
@@ -66,7 +65,7 @@ export class AspectValidationController {
     async validateDocument(
         document: Pick<vscode.TextDocument, 'languageId' | 'uri'> | undefined,
         trigger: AspectValidationTrigger,
-    ): Promise<AspectValidationResult | undefined> {
+    ): Promise<DiagnosticReport | undefined> {
         if (!document || document.languageId !== 'turtle') {
             if (trigger === 'manual') {
                 await this.window.showWarningMessage('Open a Turtle file before running aspect validation.');
@@ -75,7 +74,7 @@ export class AspectValidationController {
         }
 
         const request = () =>
-            this.client.sendRequest<AspectValidationResult>(VALIDATE_DOCUMENT_REQUEST, {
+            this.client.sendRequest<DiagnosticReport>(VALIDATE_DOCUMENT_REQUEST, {
                 uri: document.uri.toString(),
                 reason: trigger,
             });
@@ -87,14 +86,8 @@ export class AspectValidationController {
         key: string,
         title: string,
         trigger: AspectValidationTrigger,
-        request: () => Thenable<AspectValidationResult>,
-    ): Promise<AspectValidationResult | undefined> {
-        if (this.inFlightKeys.has(key)) {
-            this.outputChannel.appendLine(`[aspectValidation] ${title} already running for ${key}`);
-            return undefined;
-        }
-
-        this.inFlightKeys.add(key);
+        request: () => Thenable<DiagnosticReport>,
+    ): Promise<DiagnosticReport | undefined> {
         try {
             const result = await this.runWithProgress(title, trigger, request);
 
@@ -103,16 +96,14 @@ export class AspectValidationController {
         } catch (error) {
             await this.handleFailure(error, trigger);
             return undefined;
-        } finally {
-            this.inFlightKeys.delete(key);
         }
     }
 
     private runWithProgress(
         title: string,
         trigger: AspectValidationTrigger,
-        request: () => Thenable<AspectValidationResult>,
-    ): Promise<AspectValidationResult> {
+        request: () => Thenable<DiagnosticReport>,
+    ): Promise<DiagnosticReport> {
         if (trigger === 'save') {
             const disposable = this.window.setStatusBarMessage(`${title} in progress...`, STATUS_MESSAGE_TIMEOUT_MS);
             return Promise.resolve(request()).finally(() => disposable.dispose());
@@ -130,7 +121,7 @@ export class AspectValidationController {
         );
     }
 
-    private async showSummary(result: AspectValidationResult, trigger: AspectValidationTrigger): Promise<void> {
+    private async showSummary(result: DiagnosticReport, trigger: AspectValidationTrigger): Promise<void> {
         const summary = this.formatSummary(result);
         this.outputChannel.appendLine(`[aspectValidation] ${summary}`);
 
@@ -138,18 +129,7 @@ export class AspectValidationController {
             this.window.setStatusBarMessage(summary, STATUS_MESSAGE_TIMEOUT_MS);
             return;
         }
-
-        if (result.error) {
-            await this.window.showErrorMessage(summary);
-            return;
-        }
-
-        if (result.valid === false) {
-            await this.window.showWarningMessage(summary);
-            return;
-        }
-
-        await this.window.showInformationMessage(summary);
+        await this.window.showErrorMessage(summary);
     }
 
     private async handleFailure(error: unknown, trigger: AspectValidationTrigger): Promise<void> {
@@ -164,27 +144,12 @@ export class AspectValidationController {
         await this.window.showErrorMessage(summary);
     }
 
-    private formatSummary(result: AspectValidationResult): string {
-        if (result.error?.message) {
-            return `Aspect validation failed: ${result.error.message}`;
+    private formatSummary(result: DiagnosticReport): string {
+        const violationCount = result.diagnostics?.length ?? 0;
+        if (violationCount === 0) {
+            return 'Aspect validation completed without issues.';
         }
-
-        const violationCount = result.violations?.length ?? 0;
-        const baseMessage =
-            result.valid || violationCount === 0
-                ? 'Aspect validation completed without issues.'
-                : `Aspect validation found ${violationCount} issue${violationCount === 1 ? '' : 's'}.`;
-
-        if (!result.report) {
-            return baseMessage;
-        }
-
-        const firstLine = result.report
-            .split(/\r?\n/)
-            .map(line => line.trim())
-            .find(line => line.length > 0);
-
-        return firstLine ? `${baseMessage} ${firstLine}` : baseMessage;
+        return result.diagnostics.map(x => x.message).join(", ");
     }
 
     private toFailureMessage(error: unknown): string {

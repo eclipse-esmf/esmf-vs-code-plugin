@@ -1,103 +1,72 @@
 import * as vscode from 'vscode';
-import * as fs from 'fs';
-import * as path from 'path';
-import {Executable, LanguageClient, LanguageClientOptions, ServerOptions} from 'vscode-languageclient/node';
+import {LanguageClient, LanguageClientOptions, State, StreamInfo} from 'vscode-languageclient/node';
 import {AspectValidationController} from './aspectValidation';
+import {ExtensionContext, workspace} from 'vscode';
+import net from 'net';
+import { Trace } from 'vscode-jsonrpc';
 
-let client: LanguageClient | undefined;
+var client: LanguageClient | undefined;
+let aspectValidationController: AspectValidationController;
 
-export async function activate(context: vscode.ExtensionContext): Promise<void> {
-    const serverProjectPath = path.join(context.extensionPath, '..', 'lsp-server');
-    const jarPath = path.join(serverProjectPath, 'target', 'lsp-server.jar');
-    const outputChannel = vscode.window.createOutputChannel('Turtle LSP');
-
-    context.subscriptions.push(outputChannel);
-
-    const executable = resolveServerExecutable(serverProjectPath, jarPath);
-    if (!executable) {
-        const message = `Turtle language server launch target not found in ${serverProjectPath}`;
-        outputChannel.appendLine(message);
-        void vscode.window.showErrorMessage(`${message}. Run mvn package in the server project before using the extension.`);
-        return;
-    }
-
-    outputChannel.appendLine(`[startup] Launching Turtle language server via: java ${(executable.args ?? []).join(' ')}`);
-
-    const serverOptions: ServerOptions = {
-        run: executable,
-        debug: executable,
+export async function activate(context: ExtensionContext): Promise<void> {
+    // The server is a started as a separate app and listens on port 2113
+    let connectionInfo = {
+        port: 19113
+    };
+    let serverOptions = () => {
+        // Connect to language server via socket
+        let socket = net.connect(connectionInfo);
+        let result: StreamInfo = {
+            writer: socket,
+            reader: socket
+        };
+        return Promise.resolve(result);
     };
 
-    const clientOptions: LanguageClientOptions = {
-        documentSelector: [
-            {scheme: 'file', language: 'turtle'},
-            {scheme: 'untitled', language: 'turtle'},
-        ],
-        outputChannel,
+    let clientOptions: LanguageClientOptions = {
+        documentSelector: ['turtle'],
         synchronize: {
-            configurationSection: 'turtleLsp',
-            fileEvents: vscode.workspace.createFileSystemWatcher('**/*.ttl'),
-        },
+            fileEvents: workspace.createFileSystemWatcher('**/*.ttl')
+        }
     };
 
-    client = new LanguageClient('turtleLanguageServer', 'Turtle Language Server', serverOptions, clientOptions);
-    context.subscriptions.push(client);
-    await client.start();
+    // Create the language client and start the client.
+    client = new LanguageClient('RDF/Turtle language client', serverOptions, clientOptions);
 
-    const aspectValidationController = new AspectValidationController(client, vscode.window, vscode.workspace, outputChannel);
+    const outputChannel = vscode.window.createOutputChannel('Turtle LSP');
+    outputChannel.appendLine(`[startup] Connecting to Turtle language server at port ${ connectionInfo.port }...`);
+
+    // enable tracing (Off, Messages, Verbose)
+    client.setTrace(Trace.Verbose);
+    aspectValidationController = new AspectValidationController(client, vscode.window, vscode.workspace, outputChannel);
     aspectValidationController.register(context);
+
+    context.subscriptions.push(
+        vscode.commands.registerCommand('turtleLsp.reconnect', async () => {
+            if (client && client.state === State.Running) {
+                await client.stop();
+            }
+            outputChannel.appendLine(`[startup] Connecting to Turtle language server at port ${ connectionInfo.port }...`);
+            client = new LanguageClient('RDF/Turtle language client', serverOptions, clientOptions);
+            client.setTrace(Trace.Verbose);
+            aspectValidationController.setClient(client);
+            startClient(client, outputChannel);
+        })
+    );
+
+    startClient(client, outputChannel);
 }
 
-function resolveServerExecutable(serverProjectPath: string, jarPath: string): Executable | undefined {
-    const runtimeClasspath = resolveMavenRuntimeClasspath(serverProjectPath);
-
-    if (runtimeClasspath) {
-        return {
-            command: 'java',
-            args: ['-cp', runtimeClasspath, 'com.example.turtlelsp.App'],
-            options: {
-                cwd: serverProjectPath,
-            },
-        };
+async function startClient(theClient: LanguageClient, outputChannel: vscode.OutputChannel): Promise<void> {
+    try {
+        await Promise.race([
+            theClient.start(),
+            new Promise<never>((_, reject) => setTimeout(() => reject(new Error()), 2000))
+        ]);
+        outputChannel.appendLine(`[startup] Connected to language server`);
+    } catch (e) {
+        outputChannel.appendLine(`[startup] Failed to connect to language server`);
     }
-
-    if (fs.existsSync(jarPath)) {
-        return {
-            command: 'java',
-            args: ['-jar', jarPath],
-            options: {
-                cwd: serverProjectPath,
-            },
-        };
-    }
-
-    return undefined;
-}
-
-function resolveMavenRuntimeClasspath(serverProjectPath: string): string | undefined {
-    const reportsDirectory = path.join(serverProjectPath, 'target', 'surefire-reports');
-    if (!fs.existsSync(reportsDirectory)) {
-        return undefined;
-    }
-
-    const reportFile = fs.readdirSync(reportsDirectory).find(fileName => fileName.startsWith('TEST-') && fileName.endsWith('.xml'));
-    if (!reportFile) {
-        return undefined;
-    }
-
-    const reportContents = fs.readFileSync(path.join(reportsDirectory, reportFile), 'utf8');
-    const match = reportContents.match(/<property name="java\.class\.path" value="([^"]+)"\/>/);
-    if (!match) {
-        return undefined;
-    }
-
-    const entries = match[1]
-        .split(path.delimiter)
-        .filter(Boolean)
-        .filter((entry, index) => !(index === 0 && entry.endsWith(path.join('target', 'test-classes'))))
-        .filter(entry => fs.existsSync(entry));
-
-    return entries.length > 0 ? entries.join(path.delimiter) : undefined;
 }
 
 export async function deactivate(): Promise<void> {

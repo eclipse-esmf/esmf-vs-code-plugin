@@ -21,15 +21,21 @@
   ],
   "activationEvents": [
     "onLanguage:turtle",
-    "onCommand:turtleLsp.validateAspectModelNow"
+    "onCommand:turtleLsp.validateDocumentNow",
+    "onCommand:turtleLsp.reconnect"
   ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "turtleLsp.validateAspectModelNow",
-        "title": "Validate Aspect Model Now",
-        "category": "Turtle LSP"
+        "command": "turtleLsp.validateDocumentNow",
+        "title": "Validate document now",
+        "category": "Turtle"
+      },
+      {
+        "command": "turtleLsp.reconnect",
+        "title": "Reconnect to Language Server",
+        "category": "Turtle"
       }
     ],
     "languages": [

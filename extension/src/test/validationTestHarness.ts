@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import {
     AspectValidationController,
-    AspectValidationResult,
+    DiagnosticReport,
     RequestClient,
     ValidationOutputChannel,
     ValidationWindow,
@@ -9,7 +9,7 @@ import {
 } from '../aspectValidation';
 
 type ValidationHarnessOptions = {
-    response?: AspectValidationResult;
+    response?: DiagnosticReport;
     error?: Error;
 };
 
