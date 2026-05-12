@@ -11,7 +11,7 @@ let aspectValidationController: AspectValidationController;
 export async function activate(context: ExtensionContext): Promise<void> {
     // The server is a started as a separate app and listens on port 2113
     let connectionInfo = {
-        port: 19113
+        port: 1846
     };
     let serverOptions = () => {
         // Connect to language server via socket
