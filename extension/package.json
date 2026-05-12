@@ -51,7 +51,12 @@
         ],
         "configuration": "./language-configuration.json"
       }
-    ]
+    ],
+    "configurationDefaults": {
+      "turtle": {
+        "editor.semanticHighlighting.enabled": true
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run build",
