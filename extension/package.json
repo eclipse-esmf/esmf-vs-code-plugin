@@ -65,11 +65,11 @@
     "build": "tsc -p tsconfig.json",
     "build-watch": "tsc -p tsconfig.json --watch",
     "prettier": "prettier --config .prettierrc --write './src/**/*{.ts,.js,.json}'",
-    "test": "jest --reporters default jest-stare",
+    "test": "vscode-test --config .vscode-test.mjs",
     "test:prettier": "prettier --config .prettierrc --list-different './src/**/*{.ts,.js,.json}'",
-    "test:coverage": "jest --coverage --reporters default jest-stare",
-    "lint": "eslint . --ext .ts",
-    "lint:fix": "eslint . --ext .ts --fix"
+    "test:coverage": "vscode-test --config .vscode-test.mjs --coverage --coverage-reporter text --coverage-reporter lcov",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
