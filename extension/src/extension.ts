@@ -1,77 +1,204 @@
 import * as vscode from 'vscode';
-import {LanguageClient, LanguageClientOptions, State, StreamInfo} from 'vscode-languageclient/node';
-import {AspectValidationController} from './aspectValidation';
-import {ExtensionContext, workspace} from 'vscode';
-import net from 'net';
-import { Trace } from 'vscode-jsonrpc';
+import { AspectValidationController, RequestClient } from './aspectValidation';
+import { TurtleLanguageServer } from './languageServer';
+import { SammCliDownloader } from './sammCliDownloader';
+import { TurtleExtensionSettings, SammCliSelection } from './settings';
+import { TurtleLanguageClient } from './languageClient';
+import type { ExtensionLogger } from './outputChannel';
 
-var client: LanguageClient | undefined;
+const SELECT_EXECUTABLE_COMMAND = 'turtle.selectSammCliExecutable';
+const RESTART_LANGUAGE_SERVICES_COMMAND = 'turtle.restartLanguageServices';
+
+let settings: TurtleExtensionSettings;
+let languageServer: TurtleLanguageServer | undefined;
+let languageClient: TurtleLanguageClient;
 let aspectValidationController: AspectValidationController;
+let sammCliDownloader: SammCliDownloader;
 
-export async function activate(context: ExtensionContext): Promise<void> {
-    // The server is a started as a separate app and listens on port 2113
-    let connectionInfo = {
-        port: 1846
-    };
-    let serverOptions = () => {
-        // Connect to language server via socket
-        let socket = net.connect(connectionInfo);
-        let result: StreamInfo = {
-            writer: socket,
-            reader: socket
-        };
-        return Promise.resolve(result);
-    };
+let outputChannel: ExtensionLogger;
+let context: vscode.ExtensionContext;
+let restartChain: Promise<void> = Promise.resolve();
 
-    let clientOptions: LanguageClientOptions = {
-        documentSelector: ['turtle'],
-        synchronize: {
-            fileEvents: workspace.createFileSystemWatcher('**/*.ttl')
-        }
-    };
-
-    // Create the language client and start the client.
-    client = new LanguageClient('RDF/Turtle language client', serverOptions, clientOptions);
-
-    const outputChannel = vscode.window.createOutputChannel('Turtle LSP');
-    outputChannel.appendLine(`[startup] Connecting to Turtle language server at port ${ connectionInfo.port }...`);
-
-    // enable tracing (Off, Messages, Verbose)
-    client.setTrace(Trace.Verbose);
-    aspectValidationController = new AspectValidationController(client, vscode.window, vscode.workspace, outputChannel);
+export async function activate(ctx: vscode.ExtensionContext): Promise<void> {
+    context = ctx;
+    const logOutputChannel = vscode.window.createOutputChannel('RDF/Turtle and SAMM Aspect Models Language Server', { log: true });
+    context.subscriptions.push(logOutputChannel);
+    outputChannel = logOutputChannel;
+    settings = new TurtleExtensionSettings(context);
+    sammCliDownloader = new SammCliDownloader(context, settings, outputChannel);
+    languageClient = new TurtleLanguageClient(outputChannel, settings.getSammCliLspServerPort(), settings.getLanguageClientTraceLevel());
+    aspectValidationController = new AspectValidationController(createUnavailableClient(), vscode.window, vscode.workspace, outputChannel);
     aspectValidationController.register(context);
 
+    if (settings.sammCliAutoUpdateIsEnabled()) {
+        const selectedSammCliVersion = settings.getSammCliSelection();
+        if (selectedSammCliVersion.kind === 'release') {
+            sammCliDownloader.checkForSammCliUpdates().catch(error => {
+                outputChannel.error(`Failed to check for SAMM-CLI updates: ${error instanceof Error ? error.message : String(error)}`);
+            });
+        }
+    }
+
     context.subscriptions.push(
-        vscode.commands.registerCommand('turtleLsp.reconnect', async () => {
-            if (client && client.state === State.Running) {
-                await client.stop();
+        vscode.commands.registerCommand(SELECT_EXECUTABLE_COMMAND, async () => {
+            await selectSammCliExecutable();
+        }),
+        vscode.commands.registerCommand(RESTART_LANGUAGE_SERVICES_COMMAND, async () => {
+            await queueLanguageServicesRestart('Manual restart command');
+        }),
+        vscode.workspace.onDidChangeConfiguration((e: vscode.ConfigurationChangeEvent) => {
+            if (e.affectsConfiguration('turtle.languageServerSettings')) {
+                void queueLanguageServicesRestart('Configuration change detected');
             }
-            outputChannel.appendLine(`[startup] Connecting to Turtle language server at port ${ connectionInfo.port }...`);
-            client = new LanguageClient('RDF/Turtle language client', serverOptions, clientOptions);
-            client.setTrace(Trace.Verbose);
-            aspectValidationController.setClient(client);
-            startClient(client, outputChannel);
         })
     );
 
-    startClient(client, outputChannel);
+
+    void queueLanguageServicesRestart('extension activation');
 }
 
-async function startClient(theClient: LanguageClient, outputChannel: vscode.OutputChannel): Promise<void> {
-    try {
-        await Promise.race([
-            theClient.start(),
-            new Promise<never>((_, reject) => setTimeout(() => reject(new Error()), 2000))
-        ]);
-        outputChannel.appendLine(`[startup] Connected to language server`);
-    } catch (e) {
-        outputChannel.appendLine(`[startup] Failed to connect to language server`);
+function queueLanguageServicesRestart(reason: string): Promise<void> {
+    restartChain = restartChain
+        .then(() => restartLanguageServices(reason))
+        .catch(error => {
+            outputChannel.error(`Restart pipeline failed: ${error instanceof Error ? error.message : String(error)}`);
+        });
+
+    return restartChain;
+}
+
+async function startLanguageServer(): Promise<void> {
+    const executablePath = await sammCliDownloader.getSammCli();
+    languageServer = new TurtleLanguageServer(context, outputChannel, executablePath, settings.getSammCliLspServerPort());
+    await languageServer.start();
+}
+
+async function stopLanguageServer(): Promise<void> {
+    if (!languageServer) {
+        return;
     }
+
+    await languageServer.stop();
+    languageServer = undefined;
+}
+
+async function restartLanguageServices(reason: string): Promise<void> {
+    outputChannel.info(`Restarting language services (${reason}).`);
+
+    aspectValidationController.setClient(createUnavailableClient());
+    await languageClient.disconnect();
+    await stopLanguageServer();
+
+    try {
+        const selection = settings.getSammCliSelection();
+        if (selection.kind === 'noSammCli') {
+            outputChannel.info('Integrated SAMM-CLI is disabled. Assuming an external server is already running.');
+        } else {
+            await startLanguageServer();
+        }
+    } catch (error) {
+        await stopLanguageServer().catch(() => undefined);
+        aspectValidationController.setClient(createUnavailableClient());
+
+        const message = formatStartupError(error);
+        outputChannel.error(message);
+        vscode.window.showErrorMessage(message);
+    }
+
+    const nextClient = new TurtleLanguageClient(outputChannel, settings.getSammCliLspServerPort(), settings.getLanguageClientTraceLevel());
+    await nextClient.connect();
+    languageClient = nextClient;
+    aspectValidationController.setClient(nextClient);
+}
+
+type SammCliQuickPickItem = vscode.QuickPickItem & {
+    selection: SammCliSelection;
+};
+
+async function selectSammCliExecutable(): Promise<void> {
+    const releases = await sammCliDownloader.getRecentSammCliReleaseTags(10);
+    const currentSelection = settings.getSammCliSelection();
+
+    const releaseItems: SammCliQuickPickItem[] = releases.map(releaseTag => ({
+        label: releaseTag,
+        detail: currentSelection?.kind === 'release' && currentSelection.releaseTag === releaseTag ? 'Currently selected' : 'Download and use this GitHub release',
+        selection: { kind: 'release', releaseTag },
+    }));
+
+    const customPathItem: SammCliQuickPickItem = {
+        label: '$(folder-opened) Use custom SAMM CLI executable or jar. Jar requires Java to be installed',
+        detail: currentSelection?.kind === 'customPath' ? `Currently selected: ${currentSelection.path}` : 'Choose an executable from your file system',
+        selection: { kind: 'customPath', path: '' },
+    };
+
+    const noSammCliItem: SammCliQuickPickItem = {
+        label: 'Do not start integrated SAMM CLI LSP',
+        detail: currentSelection?.kind === 'noSammCli' ? 'Currently selected' : 'Do not start integrated SAMM CLI LSP. Must be managed by user.',
+        selection: { kind: 'noSammCli' },
+    };
+
+    const pick = await vscode.window.showQuickPick([customPathItem, noSammCliItem, ...releaseItems], {
+        title: 'Select SAMM-CLI executable',
+        placeHolder: 'Choose a recent release or select a custom executable path',
+        matchOnDetail: true,
+    });
+
+    if (!pick) {
+        return;
+    }
+
+    const selection = pick.selection;
+    let restartReason = '';
+
+    if (selection.kind === 'customPath') {
+        const selectedPath = await promptForCustomExecutablePath();
+        if (!selectedPath) {
+            return;
+        }
+        selection.path = selectedPath;
+
+        restartReason = 'Changed SAMM-CLI version to custom SAMM-CLI executable';
+    } else if (selection.kind === 'noSammCli') {
+        restartReason = 'Changed SAMM-CLI version to external SAMM-CLI management';
+    } else {
+        restartReason = `Changed SAMM-CLI version to release ${selection.releaseTag}`;
+    }
+
+    await settings.setSammCliSelection(selection);
+    vscode.window.showInformationMessage(restartReason);
+    await queueLanguageServicesRestart(restartReason);
+}
+
+async function promptForCustomExecutablePath(): Promise<string | undefined> {
+    const selection = await vscode.window.showOpenDialog({
+        canSelectFiles: true,
+        canSelectFolders: false,
+        canSelectMany: false,
+        openLabel: 'Use this executable / jar',
+        title: 'Select SAMM-CLI executable / jar',
+    });
+
+    return selection?.[0]?.fsPath;
+}
+
+function createUnavailableClient(): RequestClient {
+    return {
+        sendRequest: async () => {
+            throw new Error(`The Turtle language server is not available yet. Run '${SELECT_EXECUTABLE_COMMAND}' and then reconnect.`);
+        },
+    };
+}
+
+function formatStartupError(error: unknown): string {
+    if (error instanceof Error) {
+        return `Failed to start the Turtle language server: ${error.message}`;
+    }
+
+    return 'Failed to start the Turtle language server.';
 }
 
 export async function deactivate(): Promise<void> {
-    if (client) {
-        await client.stop();
-        client = undefined;
-    }
+    await restartChain;
+    await languageClient.disconnect();
+    await stopLanguageServer();
 }

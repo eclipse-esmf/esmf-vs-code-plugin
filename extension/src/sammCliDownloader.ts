@@ -1,0 +1,227 @@
+import * as vscode from 'vscode';
+import { constants, createWriteStream } from 'node:fs';
+import { access, mkdir, rm, stat } from 'node:fs/promises';
+import { Readable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
+import extractZip = require('extract-zip');
+import * as tar from 'tar';
+import {TurtleExtensionSettings, SammCliSelection } from './settings';
+import type { ExtensionLogger } from './outputChannel';
+
+interface GitHubReleaseAsset {
+    name: string;
+    browser_download_url: string;
+}
+
+interface GitHubRelease {
+    tag_name: string;
+    assets: Array<GitHubReleaseAsset>;
+    draft?: boolean;
+    prerelease?: boolean;
+}
+
+const GITHUB_RELEASE_REPOSITORY = 'eclipse-esmf/esmf-sdk';
+const SAMM_CLI_STORAGE_DIR = 'samm-cli';
+
+export class SammCliDownloader {
+    constructor(
+        private readonly context: vscode.ExtensionContext,
+        private readonly settings: TurtleExtensionSettings,
+        private readonly outputChannel: ExtensionLogger,
+    ) { }
+
+    async checkForSammCliUpdates(): Promise<void> {
+        const selection = this.settings.getSammCliSelection();
+        if (selection.kind !== 'release') {
+            return;
+        }
+
+        const configuredVersion = selection.releaseTag;
+        const latestVersion = await this.getLatestAvailabeSammCliReleaseTag();
+        if (configuredVersion !== latestVersion) {
+            vscode.window.showInformationMessage(`There is a new SAMM-CLI release available: ${configuredVersion} -> ${latestVersion}`, 'Download & Use').then(async (selection) => {
+                if (selection === 'Download & Use') {
+                    try {
+                        await this.settings.setSammCliSelection({ kind: 'release', releaseTag: latestVersion });
+                        await this.getSammCli();
+                        vscode.window.showInformationMessage(`SAMM-CLI ${latestVersion} has been downloaded and configured for use.`);
+                    } catch (error) {
+                        await this.settings.setSammCliSelection({ kind: 'release', releaseTag: configuredVersion }).catch(() => undefined);
+                        const message = error instanceof Error ? error.message : 'An unknown error occurred while downloading the latest SAMM-CLI release.';
+                        vscode.window.showErrorMessage(message);
+                    }
+                }
+            });
+        }
+    }
+
+    private async getLatestAvailabeSammCliReleaseTag(): Promise<string> {
+        const releases = await this.getRecentSammCliReleaseTags(1);
+
+        if (releases.length === 0) {
+            throw new Error('No SAMM-CLI releases are available on GitHub.');
+        }
+
+        return releases[0];
+    }
+
+    async getRecentSammCliReleaseTags(limit: number): Promise<Array<string>> {
+        const response = await fetch(`https://api.github.com/repos/${GITHUB_RELEASE_REPOSITORY}/releases?per_page=${limit}`, {
+            headers: {
+                'User-Agent': 'esmf-vs-code-plugin',
+                Accept: 'application/vnd.github+json',
+            },
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to fetch samm-cli releases: ${response.status} ${response.statusText}`);
+        }
+
+        const fetchedReleases = response.json() as Promise<Array<GitHubRelease>>;
+        return fetchedReleases.then(releases => releases
+            .filter(release => !release.draft && !release.prerelease)
+            .map(release => release.tag_name));
+    }
+    
+    async getSammCli(): Promise<string> {
+        const releaseSelection = this.settings.getSammCliSelection();
+        if (releaseSelection.kind === 'customPath') {
+            return releaseSelection.path;
+        } else if (releaseSelection.kind === 'noSammCli') {
+            throw new Error('integrated SAMM-CLI is disabled by user selection.');
+        }
+
+        const platform = process.platform;
+        const release = await this.fetchRelease(releaseSelection.releaseTag.trim());
+        const asset = this.selectReleaseAsset(release.assets, platform);
+        const executableName = platform === 'win32' ? 'samm.exe' : 'samm';
+
+        if (!asset) {
+            throw new Error(`No matching release asset was found in ${GITHUB_RELEASE_REPOSITORY}.`);
+        }
+
+        const targetDirectory = vscode.Uri.joinPath(this.context.globalStorageUri, SAMM_CLI_STORAGE_DIR, release.tag_name);
+        const targetPath = vscode.Uri.joinPath(targetDirectory, executableName);
+
+        if (await this.fileExists(targetPath.fsPath)) {
+            await this.ensureExecutableIsReady(targetPath.fsPath, platform, release.tag_name);
+            return targetPath.fsPath;
+        }
+
+        await mkdir(targetDirectory.fsPath, { recursive: true });
+        this.outputChannel.info(`Downloading ${asset.name} (${release.tag_name})...`);
+        await this.downloadAndExtractAsset(asset.browser_download_url, targetDirectory.fsPath, platform);
+        await this.ensureExecutableIsReady(targetPath.fsPath, platform, release.tag_name);
+
+        return targetPath.fsPath;
+    }
+
+    private async fetchRelease(releaseVersion: string): Promise<GitHubRelease> {
+        const releasePath = releaseVersion && releaseVersion !== 'latest'
+            ? `releases/tags/${encodeURIComponent(releaseVersion)}`
+            : 'releases/latest';
+
+        const response = await fetch(`https://api.github.com/repos/${GITHUB_RELEASE_REPOSITORY}/${releasePath}`, {
+            headers: {
+                'User-Agent': 'esmf-vs-code-plugin',
+                Accept: 'application/vnd.github+json',
+            },
+        });
+
+        if (!response.ok) {
+            const target = releaseVersion && releaseVersion !== 'latest' ? `release ${releaseVersion}` : 'the latest release';
+            throw new Error(`Failed to fetch samm-cli ${target}: ${response.status} ${response.statusText}`);
+        }
+
+        return response.json() as Promise<GitHubRelease>;
+    }
+
+    private async downloadAndExtractAsset(downloadUrl: string, targetDirectory: string, platform: string): Promise<void> {
+        const archivePath = `${targetDirectory}.download`;
+
+        await rm(archivePath, { force: true });
+
+        const response = await fetch(downloadUrl, {
+            headers: {
+                'User-Agent': 'esmf-vs-code-plugin',
+                Accept: 'application/octet-stream',
+            },
+        });
+
+        if (!response.ok || !response.body) {
+            throw new Error(`Failed to download the language server from ${downloadUrl}: ${response.status} ${response.statusText}`);
+        }
+
+        await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Downloading Language Server (samm-cli)...' }, async () => {
+            try {
+                await pipeline(
+                    Readable.fromWeb(response.body as unknown as globalThis.ReadableStream<Uint8Array>),
+                    createWriteStream(archivePath),
+                );
+                await this.extractArchive(archivePath, targetDirectory, platform);
+            } finally {
+                await rm(archivePath, { force: true });
+            }
+        });
+    }
+
+    private async extractArchive(archivePath: string, extractionPath: string, platform: string): Promise<void> {
+        if (platform === 'win32') {
+            await extractZip(archivePath, { dir: extractionPath });
+            return;
+        }
+
+        await tar.x({ file: archivePath, cwd: extractionPath });
+    }
+
+    private selectReleaseAsset(assets: Array<GitHubReleaseAsset>, platform: string): GitHubReleaseAsset {
+        let assetOsIdentifier: string;
+        switch (platform) {
+            case 'win32':
+                assetOsIdentifier = "windows";
+                break;
+            case 'darwin':
+                assetOsIdentifier = "macos";
+                break;
+            case 'linux':
+                assetOsIdentifier = "linux";
+                break;
+            default:
+                throw new Error(`Unsupported platform: ${process.platform}`);
+        }
+
+        const foundAsset = assets.find(asset => asset.name.includes(assetOsIdentifier));
+
+        if (!foundAsset) {
+            throw new Error(`No matching release asset found for ${assetOsIdentifier} in the available assets: ${assets.map(a => a.name).join(', ')}`);
+        }
+
+        return foundAsset;
+    }
+
+    private async ensureExecutableIsReady(executablePath: string, platform: string, releaseTag: string): Promise<void> {
+        if (!await this.fileExists(executablePath)) {
+            throw new Error(`Downloaded samm-cli ${releaseTag} did not contain expected executable at ${executablePath}.`);
+        }
+
+        if (platform === 'win32') {
+            return;
+        }
+
+        try {
+            await access(executablePath, constants.X_OK);
+        } catch {
+            throw new Error(`Downloaded samm-cli executable is not marked as executable: ${executablePath}`);
+        }
+    }
+
+    private async fileExists(filePath: string): Promise<boolean> {
+        try {
+            return (await stat(filePath)).isFile();
+        } catch {
+            return false;
+        }
+    }
+}
+
+

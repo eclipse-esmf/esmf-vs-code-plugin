@@ -1,19 +1,17 @@
-# Turtle LSP Extension
+# RDF/Turtle and SAMM Aspect Models
 
-VS Code extension for the Turtle language server. The extension supports prefix `Go to Definition`, fast syntax feedback while typing, and server-driven heavy Aspect validation for SAMM-style Turtle models.
+VS Code extension for the ESMF SDK Turtle language server. The extension supports prefix `Go to Definition`, fast syntax feedback while typing, and server-driven heavy Aspect validation for SAMM-style Turtle models.
 
-## Requirements
+## Configuration
 
-- Java must be available in `PATH`.
-- The server project must be checked out next to this extension at `../lsp-server`.
-- Build the Maven server JAR before launching the extension:
+- `turtle.languageServerSettings.serverPort`
+  - TCP port used for the socket connection to the server.
+- `turtle.languageServerSettings.automaticUpdateCheck`
+  - If enabled, checks whether a newer GitHub release is available when a release-based executable is selected.
 
-```bash
-cd ../lsp-server
-mvn package
-```
-
-The extension starts the server from `../lsp-server/target/lsp-server.jar`.
+Use the command `Turtle: Select SAMM-CLI Executable` to choose either:
+- one of the latest 10 SAMM-CLI GitHub releases, or
+- a custom executable path from your local file system.
 
 ## Features
 
@@ -29,13 +27,12 @@ The extension starts the server from `../lsp-server/target/lsp-server.jar`.
 
 ## Run The Server And Extension Together
 
-1. Build the server in `../lsp-server` with `mvn package`.
-2. In this extension project, install dependencies with `npm install`.
-3. Compile the extension with `npm run compile`.
-4. Press `F5` in VS Code to open an Extension Development Host.
-5. Open a Turtle file such as [samples/valid.ttl](samples/valid.ttl) or your Aspect model file.
+1. In this extension project, install dependencies with `npm install`.
+2. Compile the extension with `npm run build`.
+3. Press `F5` in VS Code to open an Extension Development Host.
+4. Open a Turtle file such as [samples/valid.ttl](samples/valid.ttl) or your Aspect model file.
 
-If the server JAR is missing, the extension shows an error and does not start the language client.
+If the server cannot be downloaded or started, the extension shows an error and leaves a detailed message in the Turtle LSP output channel.
 
 ## Validation Behavior
 
@@ -62,6 +59,8 @@ When each validation runs:
 
 - `Turtle LSP: Validate Aspect Model Now`
   - Sends a server request for the active Turtle document.
+- `Turtle: Select SAMM-CLI Executable`
+  - Opens a quick pick with the latest 10 GitHub releases and a custom-path option.
 
 ## UX During Long-Running Validation
 
@@ -72,7 +71,7 @@ When each validation runs:
 
 ## Verify Go To Definition
 
-Use [samples/valid.ttl](/Users/Evgenii_Filchenko/vs-code-project/extension/samples/valid.ttl):
+Use [samples/valid.ttl](extension/samples/valid.ttl):
 
 1. Open `samples/valid.ttl`.
 2. Place the cursor on `foaf:Person`, `foaf:name`, or another prefixed name.

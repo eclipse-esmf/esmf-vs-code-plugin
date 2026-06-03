@@ -7,6 +7,7 @@ import {
     ValidationWindow,
     ValidationWorkspace,
 } from '../aspectValidation';
+import type { ExtensionLogger } from '../outputChannel';
 
 type ValidationHarnessOptions = {
     response?: DiagnosticReport;
@@ -30,7 +31,7 @@ type FakeWorkspace = ValidationWorkspace & {
     fireSave(document: Pick<vscode.TextDocument, 'languageId' | 'uri'>): Promise<void>;
 };
 
-type FakeOutputChannel = ValidationOutputChannel & {
+type FakeOutputChannel = ValidationOutputChannel & ExtensionLogger & {
     lines: string[];
 };
 
@@ -117,8 +118,17 @@ function createFakeWindow(): FakeWindow {
 function createFakeOutputChannel(): FakeOutputChannel {
     return {
         lines: [],
-        appendLine(value: string) {
-            this.lines.push(value);
+        trace(message: string) {
+            this.lines.push(`[trace] ${message}`);
+        },
+        info(message: string) {
+            this.lines.push(`[info] ${message}`);
+        },
+        warn(message: string) {
+            this.lines.push(`[warn] ${message}`);
+        },
+        error(message: string | Error) {
+            this.lines.push(`[error] ${message instanceof Error ? message.message : message}`);
         },
     };
 }

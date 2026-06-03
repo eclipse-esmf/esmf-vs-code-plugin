@@ -1,7 +1,8 @@
 import * as vscode from 'vscode';
+import type { ExtensionLogger } from './outputChannel';
 
 export const VALIDATE_DOCUMENT_REQUEST = 'turtle/aspectValidation/validateDocument';
-export const VALIDATE_DOCUMENT_COMMAND = 'turtleLsp.validateDocumentNow';
+export const VALIDATE_DOCUMENT_COMMAND = 'turtle.validateDocumentNow';
 const STATUS_MESSAGE_TIMEOUT_MS = 5000;
 
 export type AspectValidationTrigger = 'manual' | 'save';
@@ -34,9 +35,7 @@ export interface ValidationWorkspace {
     onDidSaveTextDocument(listener: (document: vscode.TextDocument) => void): vscode.Disposable;
 }
 
-export interface ValidationOutputChannel {
-    appendLine(value: string): void;
-}
+export interface ValidationOutputChannel extends ExtensionLogger {}
 
 export class AspectValidationController {
     constructor(
@@ -123,18 +122,24 @@ export class AspectValidationController {
 
     private async showSummary(result: DiagnosticReport, trigger: AspectValidationTrigger): Promise<void> {
         const summary = this.formatSummary(result);
-        this.outputChannel.appendLine(`[aspectValidation] ${summary}`);
+        this.outputChannel.info(`[validation] ${summary}`);
 
         if (trigger === 'save') {
             this.window.setStatusBarMessage(summary, STATUS_MESSAGE_TIMEOUT_MS);
             return;
         }
-        await this.window.showErrorMessage(summary);
+
+        const hasViolations = (result.diagnostics?.length ?? 0) > 0;
+        if (hasViolations) {
+            await this.window.showErrorMessage(summary);
+        } else {
+            await this.window.showInformationMessage(summary);
+        }
     }
 
     private async handleFailure(error: unknown, trigger: AspectValidationTrigger): Promise<void> {
         const summary = this.toFailureMessage(error);
-        this.outputChannel.appendLine(`[aspectValidation] ${summary}`);
+        this.outputChannel.error(`[validation] ${summary}`);
 
         if (trigger === 'save') {
             this.window.setStatusBarMessage(summary, STATUS_MESSAGE_TIMEOUT_MS);

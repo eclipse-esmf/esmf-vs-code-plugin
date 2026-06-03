@@ -19,22 +19,22 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [
-    "onLanguage:turtle",
-    "onCommand:turtleLsp.validateDocumentNow",
-    "onCommand:turtleLsp.reconnect"
-  ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "turtleLsp.validateDocumentNow",
+        "command": "turtle.validateDocumentNow",
         "title": "Validate document now",
         "category": "Turtle"
       },
       {
-        "command": "turtleLsp.reconnect",
-        "title": "Reconnect to Language Server",
+        "command": "turtle.restartLanguageServices",
+        "title": "Restart and reconnect to Language Server",
+        "category": "Turtle"
+      },
+      {
+        "command": "turtle.selectSammCliExecutable",
+        "title": "Select SAMM-CLI Executable",
         "category": "Turtle"
       }
     ],
@@ -52,11 +52,73 @@
         "configuration": "./language-configuration.json"
       }
     ],
+    "configuration": {
+      "title": "RDF/Turtle and SAMM Aspect Models",
+      "type": "object",
+      "description": "Configuration settings for RDF/Turtle and SAMM Aspect Models extension.",
+      "properties": {
+        "turtle.languageServerSettings.automaticUpdateCheck": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically check for updates of the SAMM-CLI language server and notify when a new version is available.",
+          "order": 0
+        },
+        "turtle.languageServerSettings.serverPort": {
+          "type": "number",
+          "default": 1846,
+          "description": "TCP port used to connect to the Turtle/SAMM language server.",
+          "order": 1
+        },
+        "turtle.languageServerSettings.traceLevel": {
+          "type": "string",
+          "enum": [
+            "off",
+            "messages",
+            "verbose"
+          ],
+          "enumDescriptions": [
+            "No tracing.",
+            "Log request/response message names.",
+            "Log full message contents."
+          ],
+          "default": "off",
+          "description": "Controls the verbosity of language client protocol tracing in the output channel.",
+          "order": 2
+        }
+      }
+    },
     "configurationDefaults": {
-      "turtle": {
+      "[turtle]": {
         "editor.semanticHighlighting.enabled": true
       }
-    }
+    },
+    "walkthroughs": [
+      {
+        "id": "turtle-getting-started",
+        "title": "Getting Started with RDF/Turtle and SAMM Aspect Models Extension",
+        "description": "Learn how to use the RDF/Turtle and SAMM Aspect Models extension to validate your Turtle files and SAMM aspect models.\nThis walkthrough will guide you through the key features of the extension, including validating your Turtle files and SAMM aspect models using the integrated language server.",
+        "steps": [
+          {
+            "id": "validation",
+            "title": "Validating Turtle Files and SAMM Aspect Models",
+            "description": "To validate a Turtle file or a SAMM aspect model, simply open it in VS Code. The extension will automatically connect to the language server and display any validation issues in the Problems panel. You can also trigger validation manually using the 'Validate document now' command from the Command Palette.",
+            "media": {
+              "image": "media/walkthrough_validation.png",
+              "altText": "Example of validation issues shown in the Problems panel"
+            } 
+          },
+          {
+            "id": "select-samm-cli",
+            "title": "(Optional) Selecting a SAMM-CLI Executable",
+            "description": "If you have a specific version of SAMM-CLI that you want to use for validation, you can select it using the 'Select SAMM-CLI Executable' command from the Command Palette. This allows you to choose between different versions of SAMM-CLI installed on your system or downloaded by the extension.\n[Select SAMM CLI](command:turtle.selectSammCliExecutable)",
+            "media": {
+              "image": "media/walkthrough_select_samm_cli.png",
+              "altText": "Example of selecting a SAMM-CLI executable"
+            } 
+          }
+        ]
+      }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "npm run build",
@@ -82,6 +144,8 @@
     "typescript-eslint": "^8.56.1"
   },
   "dependencies": {
+    "extract-zip": "^2.0.1",
+    "tar": "^7.5.15",
     "vscode-languageclient": "^9.0.1"
   }
 }
