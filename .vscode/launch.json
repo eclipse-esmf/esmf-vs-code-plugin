@@ -1,0 +1,22 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run Extension",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/extension"
+      ],
+      "sourceMaps": true,
+      "outFiles": [
+        "${workspaceFolder}/extension/out/**/*.js"
+      ],
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/extension/out/**/*.js",
+        "!**/node_modules/**"
+      ],
+      "preLaunchTask": "extension: build"
+    }
+  ]
+}
