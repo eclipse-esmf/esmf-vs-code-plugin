@@ -92,6 +92,22 @@
         "editor.semanticHighlighting.enabled": true
       }
     },
+    "menus": {
+      "editor/title": [
+        {
+          "command": "turtle.validateDocumentNow",
+          "when": "resourceLangId == turtle",
+          "group": "navigation"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "turtle.validateDocumentNow",
+          "when": "resourceLangId == turtle",
+          "group": "1_modification"
+        }
+      ]
+    },
     "walkthroughs": [
       {
         "id": "turtle-getting-started",
