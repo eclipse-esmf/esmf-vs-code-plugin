@@ -33,12 +33,14 @@ export class SammCliDownloader {
 
     async checkForSammCliUpdates(): Promise<void> {
         const currentPath = this.settings.getSammCliPath();
-
-        let currentVersion: string | undefined;
-        if (currentPath) {
-            currentVersion = await this.runVersionCommand(currentPath).catch(() => undefined);
+        if (!currentPath) {
+            this.outputChannel.info('SAMM-CLI update check skipped: No SAMM-CLI path configured.');
+            return;
         }
-
+        const type = currentPath.endsWith('.jar') ? 'jar' : 'native';
+        const currentVersion = await this.runVersionCommand(currentPath).catch(error => {
+            throw new Error(`Failed to get current SAMM-CLI version: ${error instanceof Error ? error.message : String(error)}`);
+        });
         const latestVersion = await this.getLatestAvailabeSammCliReleaseTag().catch(error => {
             throw new Error(`Failed to check for latest SAMM-CLI release: ${error instanceof Error ? error.message : String(error)}`);
         });
@@ -50,7 +52,7 @@ export class SammCliDownloader {
             vscode.window.showInformationMessage(label, 'Download & Use').then(async (selection) => {
                 if (selection === 'Download & Use') {
                     try {
-                        const newPath = await this.downloadRelease(latestVersion);
+                        const newPath = await this.downloadRelease(latestVersion, type);
                         await this.settings.setSammCliPath(newPath);
                         vscode.window.showInformationMessage(`SAMM-CLI ${latestVersion} has been downloaded and configured for use.`);
                     } catch (error) {
@@ -90,33 +92,43 @@ export class SammCliDownloader {
             .map(release => release.tag_name));
     }
 
-    async downloadRelease(releaseTag: string): Promise<string> {
+    async downloadRelease(releaseTag: string, type: 'native' | 'jar' = 'native'): Promise<string> {
         const platform = process.platform;
         const release = await this.fetchRelease(releaseTag);
-        const asset = this.selectReleaseAsset(release.assets, platform);
-        const executableName = platform === 'win32' ? 'samm.exe' : 'samm';
+        const asset = type === 'jar'
+            // cut 'v' prefix from tag name if present to match asset naming convention (e.g. v1.2.3 -> 1.2.3)
+            ? release.assets.find(a => a.name.endsWith(`${releaseTag.replace(/^v/, '')}.jar`))
+            : this.selectReleaseAsset(release.assets, platform);
 
         if (!asset) {
             throw new Error(`No matching release asset was found in ${GITHUB_RELEASE_REPOSITORY}.`);
         }
 
+        const executableName = type === 'jar' ? 'samm.jar' : (platform === 'win32' ? 'samm.exe' : 'samm');
         const targetDirectory = vscode.Uri.joinPath(this.context.globalStorageUri, SAMM_CLI_STORAGE_DIR, release.tag_name);
         const targetPath = vscode.Uri.joinPath(targetDirectory, executableName);
 
         if (await this.fileExists(targetPath.fsPath)) {
-            await this.ensureExecutableIsReady(targetPath.fsPath, platform, release.tag_name);
+            if (type === 'native') {
+                await this.ensureExecutableIsReady(targetPath.fsPath, platform, release.tag_name);
+            }
             return targetPath.fsPath;
         }
 
         await mkdir(targetDirectory.fsPath, { recursive: true });
-        this.outputChannel.info(`Downloading ${asset.name}(${release.tag_name})...`);
-        await this.downloadAndExtractAsset(asset.browser_download_url, targetDirectory.fsPath, platform);
-        await this.ensureExecutableIsReady(targetPath.fsPath, platform, release.tag_name);
+        this.outputChannel.info(`Downloading ${asset.name} (${release.tag_name})...`);
+
+        if (type === 'jar') {
+            await this.downloadJarAsset(asset.browser_download_url, targetPath.fsPath);
+        } else {
+            await this.downloadAndExtractAsset(asset.browser_download_url, targetDirectory.fsPath, platform);
+            await this.ensureExecutableIsReady(targetPath.fsPath, platform, release.tag_name);
+        }
 
         return targetPath.fsPath;
     }
 
-    private async runVersionCommand(executablePath: string): Promise<string> {
+    public async runVersionCommand(executablePath: string): Promise<string> {
         return new Promise((resolve, reject) => {
             const [executable, args] = executablePath.endsWith('.jar')
                 ? ['java', ['-jar', executablePath, '--version']]
@@ -127,13 +139,11 @@ export class SammCliDownloader {
             child.stdout.on('data', (data: Buffer) => { output += data.toString(); });
             child.stderr.on('data', (data: Buffer) => { output += data.toString(); });
             child.once('close', (code: number | null) => {
-                const match = output.match(/v\d+\.\d+\.\d+/);
+                const match = output.match(/Version:\s*(\d+\.\d+\.\d+)/i);
                 if (match) {
-                    resolve(match[0]);
-                } else if (code === 0) {
-                    resolve(output.trim());
+                    resolve("v" + match[1]);
                 } else {
-                    reject(new Error(`--version exited with code ${String(code)}: ${output.trim()}`));
+                    reject(new Error(`Unexpected version command output: ${output}`));
                 }
             });
             child.once('error', reject);
@@ -196,6 +206,26 @@ export class SammCliDownloader {
         }
 
         await tar.x({ file: archivePath, cwd: extractionPath });
+    }
+
+    private async downloadJarAsset(downloadUrl: string, targetPath: string): Promise<void> {
+        const response = await fetch(downloadUrl, {
+            headers: {
+                'User-Agent': 'esmf-vs-code-plugin',
+                Accept: 'application/octet-stream',
+            },
+        });
+
+        if (!response.ok || !response.body) {
+            throw new Error(`Failed to download the SAMM-CLI JAR from ${downloadUrl}: ${response.status} ${response.statusText}`);
+        }
+
+        await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Downloading SAMM-CLI JAR...' }, async () => {
+            await pipeline(
+                Readable.fromWeb(response.body as unknown as globalThis.ReadableStream<Uint8Array>),
+                createWriteStream(targetPath),
+            );
+        });
     }
 
     private selectReleaseAsset(assets: Array<GitHubReleaseAsset>, platform: string): GitHubReleaseAsset {

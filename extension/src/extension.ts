@@ -44,12 +44,6 @@ export async function activate(ctx: vscode.ExtensionContext): Promise<void> {
         })
     );
 
-    if (settings.sammCliAutoUpdateIsEnabled() && settings.isEmbeddedLanguageServerStartEnabled() && settings.getSammCliPath()) {
-        sammCliDownloader.checkForSammCliUpdates().catch(error => {
-            outputChannel.error(`Failed to check for SAMM-CLI updates: ${error instanceof Error ? error.message : String(error)}`);
-        });
-    }
-
     if (settings.isEmbeddedLanguageServerStartEnabled() && !settings.getSammCliPath()) {
         await vscode.window.showErrorMessage('No SAMM CLI path configured. Required for Language Server functionality.', 'Select or download SAMM CLI Executable')
             .then(selection => {
@@ -62,6 +56,11 @@ export async function activate(ctx: vscode.ExtensionContext): Promise<void> {
         queueLanguageServicesRestart('extension activation');
     }
 
+    if (settings.sammCliAutoUpdateIsEnabled() && settings.isEmbeddedLanguageServerStartEnabled()) {
+        sammCliDownloader.checkForSammCliUpdates().catch(error => {
+            outputChannel.error(`Failed to check for SAMM-CLI updates: ${error instanceof Error ? error.message : String(error)}`);
+        });
+    }
 }
 
 function queueLanguageServicesRestart(reason: string): Promise<void> {
@@ -106,9 +105,7 @@ async function restartLanguageServices(reason: string): Promise<void> {
         await stopLanguageServer().catch(() => undefined);
         aspectValidationController.setClient(createUnavailableClient());
 
-        const message = formatStartupError(error);
-        outputChannel.error(message);
-        vscode.window.showErrorMessage(message);
+        throw error;
     }
 
     const nextClient = new TurtleLanguageClient(outputChannel, settings.getSammCliLspServerPort(), settings.getLanguageClientTraceLevel());
@@ -129,6 +126,7 @@ async function selectSammCliExecutable(): Promise<void> {
     });
 
     const currentPath = settings.getSammCliPath();
+    const currentVersion = currentPath ? await sammCliDownloader.runVersionCommand(currentPath).catch(() => undefined) : undefined;
 
     const customPathItem: SammCliQuickPickItem = {
         label: '$(folder-opened) Use custom SAMM CLI executable or jar',
@@ -144,7 +142,7 @@ async function selectSammCliExecutable(): Promise<void> {
 
     const releaseItems: SammCliQuickPickItem[] = releases.map(releaseTag => ({
         label: releaseTag,
-        detail: 'Download and use this GitHub release',
+        detail: `Download and use this GitHub release${currentVersion === releaseTag ? ' (currently configured)' : ''}`,
         action: 'release',
         releaseTag,
     }));
@@ -180,13 +178,39 @@ async function selectSammCliExecutable(): Promise<void> {
         if (!pick.releaseTag) {
             return;
         }
-        const downloadedPath = await sammCliDownloader.downloadRelease(pick.releaseTag);
+        const downloadType = await promptForDownloadType();
+        if (!downloadType) {
+            return;
+        }
+        const downloadedPath = await sammCliDownloader.downloadRelease(pick.releaseTag, downloadType);
         await settings.setSammCliPath(downloadedPath);
-        restartReason = `Changed SAMM CLI to GitHub release ${pick.releaseTag}`;
+        restartReason = `Changed SAMM CLI to GitHub release ${pick.releaseTag} (${downloadType === 'jar' ? 'JAR' : 'native executable'})`;
     }
 
     vscode.window.showInformationMessage(restartReason);
     await queueLanguageServicesRestart(restartReason);
+}
+
+async function promptForDownloadType(): Promise<'native' | 'jar' | undefined> {
+    const items: Array<vscode.QuickPickItem & { value: 'native' | 'jar' }> = [
+        {
+            label: '$(file-binary) Native Executable',
+            detail: 'Platform-specific binary. No Java required.',
+            value: 'native',
+        },
+        {
+            label: '$(file-code) JAR (Java Archive)',
+            detail: 'Platform-independent. Requires a Java runtime on your system.',
+            value: 'jar',
+        },
+    ];
+
+    const pick = await vscode.window.showQuickPick(items, {
+        title: 'Select download type',
+        placeHolder: 'Choose between native executable or JAR',
+    });
+
+    return pick?.value;
 }
 
 async function promptForCustomExecutablePath(): Promise<string | undefined> {
@@ -207,14 +231,6 @@ function createUnavailableClient(): RequestClient {
             throw new Error(`The Turtle language server is not available yet. Run '${SELECT_EXECUTABLE_COMMAND}' and then reconnect.`);
         },
     };
-}
-
-function formatStartupError(error: unknown): string {
-    if (error instanceof Error) {
-        return `Failed to start the Turtle language server: ${error.message}`;
-    }
-
-    return 'Failed to start the Turtle language server.';
 }
 
 export async function deactivate(): Promise<void> {
