@@ -5,7 +5,7 @@ import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import extractZip = require('extract-zip');
 import * as tar from 'tar';
-import {TurtleExtensionSettings, SammCliSelection } from './settings';
+import { TurtleExtensionSettings, SammCliSelection } from './settings';
 import type { ExtensionLogger } from './outputChannel';
 
 interface GitHubReleaseAsset {
@@ -37,7 +37,9 @@ export class SammCliDownloader {
         }
 
         const configuredVersion = selection.releaseTag;
-        const latestVersion = await this.getLatestAvailabeSammCliReleaseTag();
+        const latestVersion = await this.getLatestAvailabeSammCliReleaseTag().catch(error => {
+            throw new Error(`Failed to check for latest SAMM-CLI release: ${error instanceof Error ? error.message : String(error)}`);
+        });
         if (configuredVersion !== latestVersion) {
             vscode.window.showInformationMessage(`There is a new SAMM-CLI release available: ${configuredVersion} -> ${latestVersion}`, 'Download & Use').then(async (selection) => {
                 if (selection === 'Download & Use') {
@@ -74,7 +76,7 @@ export class SammCliDownloader {
         });
 
         if (!response.ok) {
-            throw new Error(`Failed to fetch samm-cli releases: ${response.status} ${response.statusText}`);
+            return Promise.reject(new Error(`Failed to fetch SAMM-CLI releases from GitHub: ${response.status} ${response.statusText}`));
         }
 
         const fetchedReleases = response.json() as Promise<Array<GitHubRelease>>;
@@ -82,7 +84,7 @@ export class SammCliDownloader {
             .filter(release => !release.draft && !release.prerelease)
             .map(release => release.tag_name));
     }
-    
+
     async getSammCli(): Promise<string> {
         const releaseSelection = this.settings.getSammCliSelection();
         if (releaseSelection.kind === 'customPath') {
@@ -109,7 +111,7 @@ export class SammCliDownloader {
         }
 
         await mkdir(targetDirectory.fsPath, { recursive: true });
-        this.outputChannel.info(`Downloading ${asset.name} (${release.tag_name})...`);
+        this.outputChannel.info(`Downloading ${asset.name}(${release.tag_name})...`);
         await this.downloadAndExtractAsset(asset.browser_download_url, targetDirectory.fsPath, platform);
         await this.ensureExecutableIsReady(targetPath.fsPath, platform, release.tag_name);
 
@@ -118,7 +120,7 @@ export class SammCliDownloader {
 
     private async fetchRelease(releaseVersion: string): Promise<GitHubRelease> {
         const releasePath = releaseVersion && releaseVersion !== 'latest'
-            ? `releases/tags/${encodeURIComponent(releaseVersion)}`
+            ? `releases / tags / ${encodeURIComponent(releaseVersion)}`
             : 'releases/latest';
 
         const response = await fetch(`https://api.github.com/repos/${GITHUB_RELEASE_REPOSITORY}/${releasePath}`, {

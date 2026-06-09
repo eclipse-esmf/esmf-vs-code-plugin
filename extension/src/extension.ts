@@ -116,14 +116,11 @@ type SammCliQuickPickItem = vscode.QuickPickItem & {
 };
 
 async function selectSammCliExecutable(): Promise<void> {
-    const releases = await sammCliDownloader.getRecentSammCliReleaseTags(10);
+    const releases = await sammCliDownloader.getRecentSammCliReleaseTags(10).catch(error => {
+        outputChannel.error(`Failed to fetch SAMM-CLI releases for quick pick: ${error instanceof Error ? error.message : String(error)}`);
+        return [];
+    });
     const currentSelection = settings.getSammCliSelection();
-
-    const releaseItems: SammCliQuickPickItem[] = releases.map(releaseTag => ({
-        label: releaseTag,
-        detail: currentSelection?.kind === 'release' && currentSelection.releaseTag === releaseTag ? 'Currently selected' : 'Download and use this GitHub release',
-        selection: { kind: 'release', releaseTag },
-    }));
 
     const customPathItem: SammCliQuickPickItem = {
         label: '$(folder-opened) Use custom SAMM CLI executable or jar. Jar requires Java to be installed',
@@ -137,13 +134,33 @@ async function selectSammCliExecutable(): Promise<void> {
         selection: { kind: 'noSammCli' },
     };
 
-    const pick = await vscode.window.showQuickPick([customPathItem, noSammCliItem, ...releaseItems], {
+    const separator: SammCliQuickPickItem = {
+        label: 'GitHub Releases',
+        kind: vscode.QuickPickItemKind.Separator,
+        selection: { kind: 'release', releaseTag: 'this is not clickable, so does not matter' },
+    };
+
+    const releaseItems: SammCliQuickPickItem[] = releases.map(releaseTag => ({
+        label: releaseTag,
+        detail: currentSelection?.kind === 'release' && currentSelection.releaseTag === releaseTag ? 'Currently selected' : 'Download and use this GitHub release',
+        selection: { kind: 'release', releaseTag },
+    }));
+
+    if (releaseItems.length === 0) {
+        releaseItems.push({
+            label: '$(error) No GitHub releases available',
+            detail: 'Failed to fetch releases from GitHub. Check output channel for details.',
+            selection: { kind: 'release', releaseTag: '' },
+        });
+    }
+
+    const pick = await vscode.window.showQuickPick([customPathItem, noSammCliItem, separator, ...releaseItems], {
         title: 'Select SAMM-CLI executable',
         placeHolder: 'Choose a recent release or select a custom executable path',
         matchOnDetail: true,
     });
 
-    if (!pick) {
+    if (!pick || (pick.selection.kind === 'release' && !pick.selection.releaseTag)) {
         return;
     }
 
