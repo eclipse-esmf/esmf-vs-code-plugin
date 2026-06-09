@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { AspectValidationController, RequestClient } from './aspectValidation';
 import { TurtleLanguageServer } from './languageServer';
 import { SammCliDownloader } from './sammCliDownloader';
-import { TurtleExtensionSettings, SammCliSelection } from './settings';
+import { TurtleExtensionSettings } from './settings';
 import { TurtleLanguageClient } from './languageClient';
 import type { ExtensionLogger } from './outputChannel';
 
@@ -30,15 +30,6 @@ export async function activate(ctx: vscode.ExtensionContext): Promise<void> {
     aspectValidationController = new AspectValidationController(createUnavailableClient(), vscode.window, vscode.workspace, outputChannel);
     aspectValidationController.register(context);
 
-    if (settings.sammCliAutoUpdateIsEnabled()) {
-        const selectedSammCliVersion = settings.getSammCliSelection();
-        if (selectedSammCliVersion.kind === 'release') {
-            sammCliDownloader.checkForSammCliUpdates().catch(error => {
-                outputChannel.error(`Failed to check for SAMM-CLI updates: ${error instanceof Error ? error.message : String(error)}`);
-            });
-        }
-    }
-
     context.subscriptions.push(
         vscode.commands.registerCommand(SELECT_EXECUTABLE_COMMAND, async () => {
             await selectSammCliExecutable();
@@ -53,8 +44,24 @@ export async function activate(ctx: vscode.ExtensionContext): Promise<void> {
         })
     );
 
+    if (settings.sammCliAutoUpdateIsEnabled() && settings.isEmbeddedLanguageServerStartEnabled() && settings.getSammCliPath()) {
+        sammCliDownloader.checkForSammCliUpdates().catch(error => {
+            outputChannel.error(`Failed to check for SAMM-CLI updates: ${error instanceof Error ? error.message : String(error)}`);
+        });
+    }
 
-    void queueLanguageServicesRestart('extension activation');
+    if (settings.isEmbeddedLanguageServerStartEnabled() && !settings.getSammCliPath()) {
+        await vscode.window.showErrorMessage('No SAMM CLI path configured. Required for Language Server functionality.', 'Select or download SAMM CLI Executable')
+            .then(selection => {
+                if (selection) {
+                    selectSammCliExecutable();
+                }
+            });
+        return;
+    } else {
+        queueLanguageServicesRestart('extension activation');
+    }
+
 }
 
 function queueLanguageServicesRestart(reason: string): Promise<void> {
@@ -68,7 +75,7 @@ function queueLanguageServicesRestart(reason: string): Promise<void> {
 }
 
 async function startLanguageServer(): Promise<void> {
-    const executablePath = await sammCliDownloader.getSammCli();
+    const executablePath = settings.getSammCliPath();
     languageServer = new TurtleLanguageServer(context, outputChannel, executablePath, settings.getSammCliLspServerPort());
     await languageServer.start();
 }
@@ -90,9 +97,8 @@ async function restartLanguageServices(reason: string): Promise<void> {
     await stopLanguageServer();
 
     try {
-        const selection = settings.getSammCliSelection();
-        if (selection.kind === 'noSammCli') {
-            outputChannel.info('Integrated SAMM-CLI is disabled. Assuming an external server is already running.');
+        if (!settings.isEmbeddedLanguageServerStartEnabled()) {
+            outputChannel.info('SAMM CLI LSP activation is disabled. Assuming an external server is already running.');
         } else {
             await startLanguageServer();
         }
@@ -112,7 +118,8 @@ async function restartLanguageServices(reason: string): Promise<void> {
 }
 
 type SammCliQuickPickItem = vscode.QuickPickItem & {
-    selection: SammCliSelection;
+    action: 'customPath' | 'release';
+    releaseTag?: string;
 };
 
 async function selectSammCliExecutable(): Promise<void> {
@@ -120,68 +127,64 @@ async function selectSammCliExecutable(): Promise<void> {
         outputChannel.error(`Failed to fetch SAMM-CLI releases for quick pick: ${error instanceof Error ? error.message : String(error)}`);
         return [];
     });
-    const currentSelection = settings.getSammCliSelection();
+
+    const currentPath = settings.getSammCliPath();
 
     const customPathItem: SammCliQuickPickItem = {
-        label: '$(folder-opened) Use custom SAMM CLI executable or jar. Jar requires Java to be installed',
-        detail: currentSelection?.kind === 'customPath' ? `Currently selected: ${currentSelection.path}` : 'Choose an executable from your file system',
-        selection: { kind: 'customPath', path: '' },
-    };
-
-    const noSammCliItem: SammCliQuickPickItem = {
-        label: 'Do not start integrated SAMM CLI LSP',
-        detail: currentSelection?.kind === 'noSammCli' ? 'Currently selected' : 'Do not start integrated SAMM CLI LSP. Must be managed by user.',
-        selection: { kind: 'noSammCli' },
+        label: '$(folder-opened) Use custom SAMM CLI executable or jar',
+        detail: currentPath ? `Currently configured: ${currentPath}` : 'Choose an executable from your file system',
+        action: 'customPath',
     };
 
     const separator: SammCliQuickPickItem = {
         label: 'GitHub Releases',
         kind: vscode.QuickPickItemKind.Separator,
-        selection: { kind: 'release', releaseTag: 'this is not clickable, so does not matter' },
+        action: 'release',
     };
 
     const releaseItems: SammCliQuickPickItem[] = releases.map(releaseTag => ({
         label: releaseTag,
-        detail: currentSelection?.kind === 'release' && currentSelection.releaseTag === releaseTag ? 'Currently selected' : 'Download and use this GitHub release',
-        selection: { kind: 'release', releaseTag },
+        detail: 'Download and use this GitHub release',
+        action: 'release',
+        releaseTag,
     }));
 
     if (releaseItems.length === 0) {
         releaseItems.push({
             label: '$(error) No GitHub releases available',
             detail: 'Failed to fetch releases from GitHub. Check output channel for details.',
-            selection: { kind: 'release', releaseTag: '' },
+            action: 'release',
         });
     }
 
-    const pick = await vscode.window.showQuickPick([customPathItem, noSammCliItem, separator, ...releaseItems], {
+    const pick = await vscode.window.showQuickPick([customPathItem, separator, ...releaseItems], {
         title: 'Select SAMM-CLI executable',
-        placeHolder: 'Choose a recent release or select a custom executable path',
+        placeHolder: 'Choose a GitHub release or select a custom executable path',
         matchOnDetail: true,
     });
 
-    if (!pick || (pick.selection.kind === 'release' && !pick.selection.releaseTag)) {
+    if (!pick) {
         return;
     }
 
-    const selection = pick.selection;
-    let restartReason = '';
+    let restartReason: string;
 
-    if (selection.kind === 'customPath') {
+    if (pick.action === 'customPath') {
         const selectedPath = await promptForCustomExecutablePath();
         if (!selectedPath) {
             return;
         }
-        selection.path = selectedPath;
-
-        restartReason = 'Changed SAMM-CLI version to custom SAMM-CLI executable';
-    } else if (selection.kind === 'noSammCli') {
-        restartReason = 'Changed SAMM-CLI version to external SAMM-CLI management';
+        await settings.setSammCliPath(selectedPath);
+        restartReason = `Changed SAMM CLI to custom executable: ${selectedPath}`;
     } else {
-        restartReason = `Changed SAMM-CLI version to release ${selection.releaseTag}`;
+        if (!pick.releaseTag) {
+            return;
+        }
+        const downloadedPath = await sammCliDownloader.downloadRelease(pick.releaseTag);
+        await settings.setSammCliPath(downloadedPath);
+        restartReason = `Changed SAMM CLI to GitHub release ${pick.releaseTag}`;
     }
 
-    await settings.setSammCliSelection(selection);
     vscode.window.showInformationMessage(restartReason);
     await queueLanguageServicesRestart(restartReason);
 }

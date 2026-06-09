@@ -4,10 +4,16 @@ VS Code extension for the ESMF SDK Turtle language server. The extension support
 
 ## Configuration
 
-- `turtle.languageServerSettings.serverPort`
-  - TCP port used for the socket connection to the server.
-- `turtle.languageServerSettings.automaticUpdateCheck`
-  - If enabled, checks whether a newer GitHub release is available when a release-based executable is selected.
+- `turtle.languageServerSettings.activateEmbeddedLanguageServer` (boolean, default: `true`)
+  - When enabled, the extension starts the SAMM-CLI language server process. When disabled, an external language server must be started manually.
+- `turtle.languageServerSettings.automaticUpdateCheck` (boolean, default: `true`)
+  - Automatically check for updates of the SAMM-CLI language server and notify when a new version is available.
+- `turtle.languageServerSettings.sammCliPath` (string)
+  - Path to the SAMM CLI executable or jar file to use as the language server. Can be downloaded / set via the 'Select SAMM-CLI Executable' command.
+- `turtle.languageServerSettings.serverPort` (number, default: `1846`)
+  - TCP port used to connect to the Turtle/SAMM language server.
+- `turtle.languageServerSettings.traceLevel` (string, default: `off`)
+  - Controls the verbosity of language client protocol tracing. Options: `off`, `messages`, `verbose`.
 
 Use the command `Turtle: Select SAMM-CLI Executable` to choose either:
 - one of the latest 10 SAMM-CLI GitHub releases, or
@@ -20,7 +26,7 @@ Use the command `Turtle: Select SAMM-CLI Executable` to choose either:
   - Fast feedback on type from the regular Turtle parser diagnostics provided by the server.
   - Heavy Aspect validation from the server for model-level issues.
 - Manual validation command:
-  - `Validate Aspect Model Now`
+  - `Turtle: Validate document now`
 - Standard diagnostics flow:
   - errors appear in the editor
   - errors appear in `Problems`
@@ -53,14 +59,16 @@ When each validation runs:
 
 - On type: fast syntax feedback only.
 - On save: heavy Aspect validation for Turtle documents.
-- Manual: `Validate Aspect Model Now` for the active Turtle document.
+- Manual: `Turtle: Validate document now` for the active Turtle document.
 
 ## Commands
 
-- `Turtle LSP: Validate Aspect Model Now`
+- `Turtle: Validate document now`
   - Sends a server request for the active Turtle document.
 - `Turtle: Select SAMM-CLI Executable`
   - Opens a quick pick with the latest 10 GitHub releases and a custom-path option.
+- `Turtle: Restart and reconnect to Language Server`
+  - Restarts the language server and reconnects the client.
 
 ## UX During Long-Running Validation
 
@@ -100,7 +108,7 @@ Use an Aspect model file, for example:
 Manual check:
 
 1. Open the model file.
-2. Run `Turtle LSP: Validate Aspect Model Now`.
+2. Run `Turtle: Validate document now`.
 3. Wait for the progress indicator to finish.
 4. Confirm that diagnostics appear in the editor and in `Problems`.
 

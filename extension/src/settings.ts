@@ -1,35 +1,20 @@
 import * as vscode from 'vscode';
 
-const SAMM_CLI_SELECTION_CONFIG_KEY = 'sammCliSelection';
-const DEFAULT_SAMM_CLI_RELEASE: ReleaseSammCliSelection = { kind: 'release', releaseTag: 'v2.14.3' };
-
-type ReleaseSammCliSelection = {
-    kind: 'release';
-    releaseTag: string;
-};
-
-type CustomPathSammCliSelection = {
-    kind: 'customPath';
-    path: string;
-};
-
-type NoSammCliSelection = {
-    kind: 'noSammCli';
-};
-
-export type SammCliSelection = ReleaseSammCliSelection | CustomPathSammCliSelection | NoSammCliSelection;
-
 export class TurtleExtensionSettings {
     constructor(
         private readonly context: vscode.ExtensionContext,
     ) { }
 
-    getSammCliSelection(): SammCliSelection  {
-        return this.context.globalState.get<SammCliSelection>(SAMM_CLI_SELECTION_CONFIG_KEY, DEFAULT_SAMM_CLI_RELEASE);
+    isEmbeddedLanguageServerStartEnabled(): boolean {
+        return vscode.workspace.getConfiguration('turtle.languageServerSettings').get<boolean>('activateEmbeddedLanguageServer', true);
     }
 
-    async setSammCliSelection(selection: SammCliSelection): Promise<void> {
-        await this.context.globalState.update(SAMM_CLI_SELECTION_CONFIG_KEY, selection);
+    getSammCliPath(): string {
+        return vscode.workspace.getConfiguration('turtle.languageServerSettings').get<string>('sammCliPath', '');
+    }
+
+    async setSammCliPath(path: string): Promise<void> {
+        await vscode.workspace.getConfiguration('turtle.languageServerSettings').update('sammCliPath', path, vscode.ConfigurationTarget.Global);
     }
 
     sammCliAutoUpdateIsEnabled(): boolean {

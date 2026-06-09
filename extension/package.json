@@ -57,17 +57,29 @@
       "type": "object",
       "description": "Configuration settings for RDF/Turtle and SAMM Aspect Models extension.",
       "properties": {
+        "turtle.languageServerSettings.activateEmbeddedLanguageServer": {
+          "type": "boolean",
+          "default": true,
+          "description": "When enabled, the extension starts the SAMM-CLI language server process at the path configured below. When disabled, an external language server must be started manually.",
+          "order": 0
+        },
         "turtle.languageServerSettings.automaticUpdateCheck": {
           "type": "boolean",
           "default": true,
           "description": "Automatically check for updates of the SAMM-CLI language server and notify when a new version is available.",
-          "order": 0
+          "order": 1
+        },
+        "turtle.languageServerSettings.sammCliPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the SAMM CLI executable or jar file to use as the language server. Can be downloaded / set via the 'Select SAMM-CLI Executable' command.",
+          "order": 2
         },
         "turtle.languageServerSettings.serverPort": {
           "type": "number",
           "default": 1846,
           "description": "TCP port used to connect to the Turtle/SAMM language server.",
-          "order": 1
+          "order": 3
         },
         "turtle.languageServerSettings.traceLevel": {
           "type": "string",
@@ -83,7 +95,7 @@
           ],
           "default": "off",
           "description": "Controls the verbosity of language client protocol tracing in the output channel.",
-          "order": 2
+          "order": 4
         }
       }
     },
