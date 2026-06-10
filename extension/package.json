@@ -108,13 +108,6 @@
       }
     },
     "menus": {
-      "editor/title": [
-        {
-          "command": "turtle.validateDocumentNow",
-          "when": "resourceLangId == turtle",
-          "group": "navigation"
-        }
-      ],
       "editor/context": [
         {
           "command": "turtle.validateDocumentNow",
@@ -130,22 +123,22 @@
         "description": "Learn how to use the RDF/Turtle and SAMM Aspect Models extension to validate your Turtle files and SAMM aspect models.\nThis walkthrough will guide you through the key features of the extension, including validating your Turtle files and SAMM aspect models using the integrated language server.",
         "steps": [
           {
+            "id": "select-samm-cli",
+            "title": "Selecting a SAMM-CLI Executable",
+            "description": "Initial setup requires you to either Download or manually select a SAMM CLI, containing the required SAMM Lanuage Server \n[Download or Select SAMM CLI](command:turtle.selectSammCliExecutable)",
+            "media": {
+              "image": "media/walkthrough_select_samm_cli.png",
+              "altText": "Example of selecting a SAMM-CLI executable"
+            }
+          },
+          {
             "id": "validation",
             "title": "Validating Turtle Files and SAMM Aspect Models",
             "description": "To validate a Turtle file or a SAMM aspect model, simply open it in VS Code. The extension will automatically connect to the language server and display any validation issues in the Problems panel. You can also trigger validation manually using the 'Validate document now' command from the Command Palette.",
             "media": {
               "image": "media/walkthrough_validation.png",
               "altText": "Example of validation issues shown in the Problems panel"
-            } 
-          },
-          {
-            "id": "select-samm-cli",
-            "title": "(Optional) Selecting a SAMM-CLI Executable",
-            "description": "If you have a specific version of SAMM-CLI that you want to use for validation, you can select it using the 'Select SAMM-CLI Executable' command from the Command Palette. This allows you to choose between different versions of SAMM-CLI installed on your system or downloaded by the extension.\n[Select SAMM CLI](command:turtle.selectSammCliExecutable)",
-            "media": {
-              "image": "media/walkthrough_select_samm_cli.png",
-              "altText": "Example of selecting a SAMM-CLI executable"
-            } 
+            }
           }
         ]
       }

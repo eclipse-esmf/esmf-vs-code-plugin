@@ -23,13 +23,10 @@ Use the command `Turtle: Select SAMM-CLI Executable` to choose either:
 
 - Prefix `Go to Definition` inside Turtle files.
 - Two-level validation:
-  - Fast feedback on type from the regular Turtle parser diagnostics provided by the server.
-  - Heavy Aspect validation from the server for model-level issues.
+  - Fast feedback on type from the regular Turtle parser diagnostics provided by the server (appear in the editor and `Problems`).
+  - Heavy Aspect validation from the server for model-level issues (results shown in notifications and status bar).
 - Manual validation command:
   - `Turtle: Validate document now`
-- Standard diagnostics flow:
-  - errors appear in the editor
-  - errors appear in `Problems`
 
 ## Run The Server And Extension Together
 
@@ -45,12 +42,13 @@ If the server cannot be downloaded or started, the extension shows an error and 
 Fast feedback on type:
 
 - Driven by the server's regular Turtle parsing diagnostics.
+- Results appear in the editor and `Problems` panel.
 - Intended for quick editor feedback while you type.
 
 Heavy Aspect validation:
 
 - Runs on the server, not in the extension.
-- Uses standard LSP diagnostics so the result appears in the editor and in `Problems`.
+- Results are displayed in notification messages (for manual validation) or status bar (for save-triggered validation).
 - Always uses detailed server validation messaging when the server returns report text.
 - Always shows visible progress for long-running validation.
 - Runs automatically on save and can also be triggered manually.
@@ -74,12 +72,12 @@ When each validation runs:
 
 - Manual validation shows a progress notification while the request is running.
 - Save-triggered validation always uses a short status-bar progress indicator instead of repeated popups.
-- After completion, the user gets a summary that includes the first detailed server report line when available.
+- After completion, the user gets a summary message with validation results.
 - Automatic save validation keeps progress and completion feedback in the status bar.
 
 ## Verify Go To Definition
 
-Use [samples/valid.ttl](extension/samples/valid.ttl):
+Use [samples/valid.ttl](samples/valid.ttl):
 
 1. Open `samples/valid.ttl`.
 2. Place the cursor on `foaf:Person`, `foaf:name`, or another prefixed name.
@@ -93,27 +91,17 @@ Expected behavior:
 
 ## Verify Aspect Validation
 
-Use an Aspect model file, for example:
-
-```turtle
-@prefix : <urn:samm:org.eclipse.esmf.test:1.0.0#> .
-@prefix samm: <urn:samm:org.eclipse.esmf.samm:meta-model:2.2.0#> .
-
-:InvalidSyntax a samm:Aspect;
-   samm:preferredName "Test Aspect"@en
-   samm:properties () ;
-   samm:operations () .
-```
+Use [samples/org.eclipse.esmf.test/1.0.0/Aspect.ttl](samples/org.eclipse.esmf.test/1.0.0/Aspect.ttl) or [samples/invalid.ttl](samples/invalid.ttl).
 
 Manual check:
 
-1. Open the model file.
+1. Open an Aspect model file.
 2. Run `Turtle: Validate document now`.
 3. Wait for the progress indicator to finish.
-4. Confirm that diagnostics appear in the editor and in `Problems`.
+4. Confirm that validation results appear in a notification message.
 
 On-save check:
 
 1. Save the model file.
 2. Confirm that the status bar shows validation progress.
-3. Confirm that diagnostics are refreshed after completion.
+3. Confirm that a summary message appears in the status bar after completion.

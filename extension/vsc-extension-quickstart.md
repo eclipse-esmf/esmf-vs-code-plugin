@@ -1,17 +1,23 @@
-# Welcome to your VS Code Extension
+# RDF/Turtle and SAMM Aspect Models VS Code Extension
 
-## What's in the folder
+## Project Structure
 
-* This folder contains all of the files necessary for your extension.
-* `package.json` - this is the manifest file in which you declare your extension and command.
-  * The sample plugin registers a command and defines its title and command name. With this information VS Code can show the command in the command palette. It doesn’t yet need to load the plugin.
-* `src/extension.ts` - this is the main file where you will provide the implementation of your command.
-  * The file exports one function, `activate`, which is called the very first time your extension is activated (in this case by executing the command). Inside the `activate` function we call `registerCommand`.
-  * We pass the function containing the implementation of the command as the second parameter to `registerCommand`.
+This folder contains the VS Code extension for the ESMF SDK Turtle language server.
 
-## Get up and running straight away
+* `package.json` - Extension manifest declaring commands, language support, settings, and walkthrough.
+* `src/extension.ts` - Main extension entry point; handles activation, configuration, and language server lifecycle.
+* `src/languageServer.ts` - Spawns and manages the SAMM-CLI language server process.
+* `src/languageClient.ts` - Connects the VS Code language client to the server.
+* `src/aspectValidation.ts` - Handles aspect model validation workflows (manual and on-save).
+* `src/sammCliDownloader.ts` - Downloads and manages SAMM-CLI releases from GitHub.
+* `src/settings.ts` - Reads and manages extension configuration.
+* `samples/` - Example Turtle and Aspect model files for testing.
 
-* Press `F5` to open a new window with your extension loaded.
-* Run your command from the command palette by pressing (`Ctrl+Shift+P` or `Cmd+Shift+P` on Mac) and typing `Hello World`.
-* Set breakpoints in your code inside `src/extension.ts` to debug your extension.
-* Find output from your extension in the debug console.
+## Getting Started
+
+1. Install dependencies: `npm install` (in `extension/` folder)
+2. Build the extension: `npm run build`
+3. Press `F5` to open an Extension Development Host with the extension loaded.
+4. Open a `.ttl` file (e.g., `samples/valid.ttl`) to activate the extension.
+
+See [README.md](README.md) for full feature documentation and usage instructions.
