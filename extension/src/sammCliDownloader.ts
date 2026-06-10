@@ -1,3 +1,16 @@
+/*
+ * Copyright (c) 2026 Robert Bosch Manufacturing Solutions GmbH
+ *
+ * See the AUTHORS file(s) distributed with this work for additional
+ * information regarding authorship.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 import * as vscode from 'vscode';
 import { constants, createWriteStream } from 'node:fs';
 import { access, mkdir, rm, stat } from 'node:fs/promises';
@@ -5,10 +18,11 @@ import { spawn } from 'node:child_process';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import extractZip = require('extract-zip');
+import * as path from 'node:path';
 import * as tar from 'tar';
 import { TurtleExtensionSettings } from './settings';
 import type { ExtensionLogger } from './outputChannel';
-import {JAVA_OPTIONS} from './languageServer';
+import { GITHUB_RELEASE_REPOSITORY, JAVA_OPTIONS } from './constants';
 
 interface GitHubReleaseAsset {
     name: string;
@@ -22,8 +36,10 @@ interface GitHubRelease {
     prerelease?: boolean;
 }
 
-const GITHUB_RELEASE_REPOSITORY = 'eclipse-esmf/esmf-sdk';
 const SAMM_CLI_STORAGE_DIR = 'samm-cli';
+// GitHub returns up to 100 releases per page; fetch a full page so that
+// filtering out drafts/prereleases still leaves enough stable releases.
+const RELEASES_PAGE_SIZE = 100;
 
 export class SammCliDownloader {
     constructor(
@@ -42,11 +58,11 @@ export class SammCliDownloader {
         const currentVersion = await this.runVersionCommand(currentPath).catch(error => {
             throw new Error(`Failed to get current SAMM-CLI version: ${error instanceof Error ? error.message : String(error)}`);
         });
-        const latestVersion = await this.getLatestAvailabeSammCliReleaseTag().catch(error => {
+        const latestVersion = await this.getLatestAvailableSammCliReleaseTag().catch(error => {
             throw new Error(`Failed to check for latest SAMM-CLI release: ${error instanceof Error ? error.message : String(error)}`);
         });
 
-        if (currentVersion !== latestVersion) {
+        if (this.compareVersions(latestVersion, currentVersion) > 0) {
             const label = currentVersion
                 ? `There is a new SAMM-CLI release available: ${currentVersion} -> ${latestVersion}`
                 : `SAMM-CLI ${latestVersion} is available`;
@@ -65,7 +81,7 @@ export class SammCliDownloader {
         }
     }
 
-    private async getLatestAvailabeSammCliReleaseTag(): Promise<string> {
+    private async getLatestAvailableSammCliReleaseTag(): Promise<string> {
         const releases = await this.getRecentSammCliReleaseTags(1);
 
         if (releases.length === 0) {
@@ -76,7 +92,7 @@ export class SammCliDownloader {
     }
 
     async getRecentSammCliReleaseTags(limit: number): Promise<Array<string>> {
-        const response = await fetch(`https://api.github.com/repos/${GITHUB_RELEASE_REPOSITORY}/releases?per_page=${limit}`, {
+        const response = await fetch(`https://api.github.com/repos/${GITHUB_RELEASE_REPOSITORY}/releases?per_page=${RELEASES_PAGE_SIZE}`, {
             headers: {
                 'User-Agent': 'esmf-vs-code-plugin',
                 Accept: 'application/vnd.github+json',
@@ -84,13 +100,14 @@ export class SammCliDownloader {
         });
 
         if (!response.ok) {
-            return Promise.reject(new Error(`Failed to fetch SAMM-CLI releases from GitHub: ${response.status} ${response.statusText}`));
+            return Promise.reject(new Error(this.describeGitHubError('Failed to fetch SAMM-CLI releases from GitHub', response)));
         }
 
-        const fetchedReleases = response.json() as Promise<Array<GitHubRelease>>;
-        return fetchedReleases.then(releases => releases
+        const releases = await response.json() as Array<GitHubRelease>;
+        return releases
             .filter(release => !release.draft && !release.prerelease)
-            .map(release => release.tag_name));
+            .map(release => release.tag_name)
+            .slice(0, limit);
     }
 
     async downloadRelease(releaseTag: string, type: 'native' | 'jar' = 'native'): Promise<string> {
@@ -165,7 +182,7 @@ export class SammCliDownloader {
 
         if (!response.ok) {
             const target = releaseVersion && releaseVersion !== 'latest' ? `release ${releaseVersion}` : 'the latest release';
-            throw new Error(`Failed to fetch samm-cli ${target}: ${response.status} ${response.statusText}`);
+            throw new Error(this.describeGitHubError(`Failed to fetch samm-cli ${target}`, response));
         }
 
         return response.json() as Promise<GitHubRelease>;
@@ -268,6 +285,41 @@ export class SammCliDownloader {
         } catch {
             throw new Error(`Downloaded samm-cli executable is not marked as executable: ${executablePath}`);
         }
+    }
+
+    /**
+     * Compares two SAMM-CLI version tags (e.g. `v2.10.0`, `2.12.0`).
+     * Returns a positive number when `a` is newer than `b`, a negative number
+     * when it is older, and `0` when they are equal. Pre-release suffixes are
+     * ignored. An unparsable/empty version is treated as the oldest.
+     */
+    private compareVersions(a: string, b: string): number {
+        const parse = (version: string): Array<number> => {
+            const match = version.match(/(\d+)\.(\d+)\.(\d+)/);
+            return match ? [Number(match[1]), Number(match[2]), Number(match[3])] : [-1, -1, -1];
+        };
+
+        const left = parse(a);
+        const right = parse(b);
+
+        for (let i = 0; i < left.length; i++) {
+            if (left[i] !== right[i]) {
+                return left[i] - right[i];
+            }
+        }
+
+        return 0;
+    }
+
+    private describeGitHubError(prefix: string, response: Response): string {
+        const isRateLimited = response.status === 403 && response.headers.get('x-ratelimit-remaining') === '0';
+        if (isRateLimited) {
+            const reset = response.headers.get('x-ratelimit-reset');
+            const resetHint = reset ? ` Try again after ${new Date(Number(reset) * 1000).toLocaleTimeString()}.` : '';
+            return `${prefix}: GitHub API rate limit exceeded.${resetHint}`;
+        }
+
+        return `${prefix}: ${response.status} ${response.statusText}`;
     }
 
     private async fileExists(filePath: string): Promise<boolean> {

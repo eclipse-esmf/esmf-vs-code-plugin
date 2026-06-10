@@ -1,3 +1,16 @@
+/*
+ * Copyright (c) 2026 Robert Bosch Manufacturing Solutions GmbH
+ *
+ * See the AUTHORS file(s) distributed with this work for additional
+ * information regarding authorship.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 import * as vscode from 'vscode';
 import { AspectValidationController, RequestClient } from './aspectValidation';
 import { TurtleLanguageServer } from './languageServer';
@@ -7,6 +20,7 @@ import { TurtleLanguageClient } from './languageClient';
 import type { ExtensionLogger } from './outputChannel';
 
 const SELECT_EXECUTABLE_COMMAND = 'turtle.selectSammCliExecutable';
+const SELECT_EXECUTABLE_TITLE = 'Select SAMM-CLI Executable';
 const RESTART_LANGUAGE_SERVICES_COMMAND = 'turtle.restartLanguageServices';
 
 let settings: TurtleExtensionSettings;
@@ -45,16 +59,17 @@ export async function activate(ctx: vscode.ExtensionContext): Promise<void> {
     );
 
     if (settings.isEmbeddedLanguageServerStartEnabled() && !settings.getSammCliPath()) {
-        await vscode.window.showErrorMessage('No SAMM CLI path configured. Required for Language Server functionality.', 'Select or download SAMM CLI Executable')
-            .then(selection => {
-                if (selection) {
-                    selectSammCliExecutable();
-                }
-            });
+        const selection = await vscode.window.showErrorMessage(
+            'No SAMM CLI path configured. Required for Language Server functionality.',
+            'Select or download SAMM CLI Executable',
+        );
+        if (selection) {
+            await selectSammCliExecutable();
+        }
         return;
-    } else {
-        queueLanguageServicesRestart('extension activation');
     }
+
+    void queueLanguageServicesRestart('extension activation');
 
     if (settings.sammCliAutoUpdateIsEnabled() && settings.isEmbeddedLanguageServerStartEnabled()) {
         sammCliDownloader.checkForSammCliUpdates().catch(error => {
@@ -229,7 +244,7 @@ async function promptForCustomExecutablePath(): Promise<string | undefined> {
 function createUnavailableClient(): RequestClient {
     return {
         sendRequest: async () => {
-            throw new Error(`The Turtle language server is not available yet. Run '${SELECT_EXECUTABLE_COMMAND}' and then reconnect.`);
+            throw new Error(`The Turtle language server is not available yet. Run '${SELECT_EXECUTABLE_TITLE}' and then reconnect.`);
         },
     };
 }

@@ -1,11 +1,24 @@
+/*
+ * Copyright (c) 2026 Robert Bosch Manufacturing Solutions GmbH
+ *
+ * See the AUTHORS file(s) distributed with this work for additional
+ * information regarding authorship.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 import * as vscode from 'vscode';
 import { ChildProcessWithoutNullStreams, spawn } from 'node:child_process';
 import * as net from 'node:net';
 import type { ExtensionLogger } from './outputChannel';
+import { JAVA_OPTIONS } from './constants';
 
 const SERVER_READY_TIMEOUT_MS = 10_000;
 const SERVER_READY_RETRY_DELAY_MS = 250;
-export const JAVA_OPTIONS = ['--enable-native-access=ALL-UNNAMED', '--sun-misc-unsafe-memory-access=allow', '-Dpolyglotimpl.DisableMultiReleaseCheck=true'];
 
 export class TurtleLanguageServer {
     private serverProcess: ChildProcessWithoutNullStreams | undefined;
