@@ -68,6 +68,7 @@ function queueLanguageServicesRestart(reason: string): Promise<void> {
         .then(() => restartLanguageServices(reason))
         .catch(error => {
             outputChannel.error(`Restart pipeline failed: ${error instanceof Error ? error.message : String(error)}`);
+            throw error;
         });
 
     return restartChain;

@@ -8,6 +8,7 @@ import extractZip = require('extract-zip');
 import * as tar from 'tar';
 import { TurtleExtensionSettings } from './settings';
 import type { ExtensionLogger } from './outputChannel';
+import {JAVA_OPTIONS} from './languageServer';
 
 interface GitHubReleaseAsset {
     name: string;
@@ -131,7 +132,7 @@ export class SammCliDownloader {
     public async runVersionCommand(executablePath: string): Promise<string> {
         return new Promise((resolve, reject) => {
             const [executable, args] = executablePath.endsWith('.jar')
-                ? ['java', ['-jar', executablePath, '--version']]
+                ? ['java', [...JAVA_OPTIONS, '-jar', executablePath, '--version']]
                 : [executablePath, ['--version']];
 
             const child = spawn(executable, args, { env: process.env });

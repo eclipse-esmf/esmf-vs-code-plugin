@@ -3,8 +3,9 @@ import { ChildProcessWithoutNullStreams, spawn } from 'node:child_process';
 import * as net from 'node:net';
 import type { ExtensionLogger } from './outputChannel';
 
-const SERVER_READY_TIMEOUT_MS = 30_000;
+const SERVER_READY_TIMEOUT_MS = 10_000;
 const SERVER_READY_RETRY_DELAY_MS = 250;
+export const JAVA_OPTIONS = ['--enable-native-access=ALL-UNNAMED', '--sun-misc-unsafe-memory-access=allow', '-Dpolyglotimpl.DisableMultiReleaseCheck=true'];
 
 export class TurtleLanguageServer {
     private serverProcess: ChildProcessWithoutNullStreams | undefined;
@@ -19,7 +20,7 @@ export class TurtleLanguageServer {
     async start(): Promise<void> {
 
         const [executable, args] = this.sammCliExecutablePath.endsWith('.jar')
-            ? ['java', ['-jar', this.sammCliExecutablePath, 'lsp', '--port', String(this.serverPort)]]
+            ? ['java', [...JAVA_OPTIONS, '-jar', this.sammCliExecutablePath, 'lsp', '--port', String(this.serverPort)]]
             : [this.sammCliExecutablePath, ['lsp', '--port', String(this.serverPort)]];
 
         this.outputChannel.info(`Starting language server: ${executable} ${args.join(' ')}`);
