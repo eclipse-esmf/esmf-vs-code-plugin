@@ -11,12 +11,12 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 
-/** JVM options passed to the SAMM-CLI when it is launched from a JAR. */
+/** JVM options passed to the SAMM CLI when it is launched from a JAR. */
 export const JAVA_OPTIONS = [
     '--enable-native-access=ALL-UNNAMED',
     '--sun-misc-unsafe-memory-access=allow',
     '-Dpolyglotimpl.DisableMultiReleaseCheck=true',
 ];
 
-/** GitHub repository hosting the SAMM-CLI releases. */
+/** GitHub repository hosting the SAMM CLI releases. */
 export const GITHUB_RELEASE_REPOSITORY = 'eclipse-esmf/esmf-sdk';

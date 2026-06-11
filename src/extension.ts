@@ -20,7 +20,7 @@ import { TurtleLanguageClient } from './languageClient';
 import type { ExtensionLogger } from './outputChannel';
 
 const SELECT_EXECUTABLE_COMMAND = 'turtle.selectSammCliExecutable';
-const SELECT_EXECUTABLE_TITLE = 'Select SAMM-CLI Executable';
+const SELECT_EXECUTABLE_TITLE = 'Select SAMM CLI Executable';
 const RESTART_LANGUAGE_SERVICES_COMMAND = 'turtle.restartLanguageServices';
 
 let settings: TurtleExtensionSettings;
@@ -73,7 +73,7 @@ export async function activate(ctx: vscode.ExtensionContext): Promise<void> {
 
     if (settings.sammCliAutoUpdateIsEnabled() && settings.isEmbeddedLanguageServerStartEnabled()) {
         sammCliDownloader.checkForSammCliUpdates().catch(error => {
-            outputChannel.error(`Failed to check for SAMM-CLI updates: ${error instanceof Error ? error.message : String(error)}`);
+            outputChannel.error(`Failed to check for SAMM CLI updates: ${error instanceof Error ? error.message : String(error)}`);
         });
     }
 }
@@ -136,7 +136,7 @@ type SammCliQuickPickItem = vscode.QuickPickItem & {
 
 async function selectSammCliExecutable(): Promise<void> {
     const releases = await sammCliDownloader.getRecentSammCliReleaseTags(10).catch(error => {
-        outputChannel.error(`Failed to fetch SAMM-CLI releases for quick pick: ${error instanceof Error ? error.message : String(error)}`);
+        outputChannel.error(`Failed to fetch SAMM CLI releases for quick pick: ${error instanceof Error ? error.message : String(error)}`);
         return [];
     });
 
@@ -144,7 +144,7 @@ async function selectSammCliExecutable(): Promise<void> {
     const currentVersion = currentPath ? await sammCliDownloader.runVersionCommand(currentPath).catch(() => undefined) : undefined;
 
     const customPathItem: SammCliQuickPickItem = {
-        label: '$(folder-opened) Use custom SAMM CLI executable or jar',
+        label: '$(folder-opened) Use custom SAMM CLI executable or jar file',
         detail: currentPath ? `Currently configured: ${currentPath}` : 'Choose an executable from your file system',
         action: 'customPath',
     };
@@ -171,7 +171,7 @@ async function selectSammCliExecutable(): Promise<void> {
     }
 
     const pick = await vscode.window.showQuickPick([customPathItem, separator, ...releaseItems], {
-        title: 'Select SAMM-CLI executable',
+        title: 'Select SAMM CLI executable',
         placeHolder: 'Choose a GitHub release or select a custom executable path',
         matchOnDetail: true,
     });
@@ -234,7 +234,7 @@ async function promptForCustomExecutablePath(): Promise<string | undefined> {
         canSelectFolders: false,
         canSelectMany: false,
         openLabel: 'Use this executable / jar',
-        title: 'Select SAMM-CLI executable / jar',
+        title: 'Select SAMM CLI executable / jar',
     });
 
     return selection?.[0]?.fsPath;

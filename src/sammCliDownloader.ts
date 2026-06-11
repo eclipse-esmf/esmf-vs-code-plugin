@@ -35,7 +35,7 @@ interface GitHubRelease {
     prerelease?: boolean;
 }
 
-const SAMM_CLI_STORAGE_DIR = 'samm-cli';
+const SAMM_CLI_STORAGE_DIR = 'SAMM CLI';
 const RELEASES_PAGE_SIZE = 20;
 
 export class SammCliDownloader {
@@ -48,29 +48,29 @@ export class SammCliDownloader {
     async checkForSammCliUpdates(): Promise<void> {
         const currentPath = this.settings.getSammCliPath();
         if (!currentPath) {
-            this.outputChannel.info('SAMM-CLI update check skipped: No SAMM-CLI path configured.');
+            this.outputChannel.info('SAMM CLI update check skipped: No SAMM CLI path configured.');
             return;
         }
         const type = currentPath.endsWith('.jar') ? 'jar' : 'native';
         const currentVersion = await this.runVersionCommand(currentPath).catch(error => {
-            throw new Error(`Failed to get current SAMM-CLI version: ${error instanceof Error ? error.message : String(error)}`);
+            throw new Error(`Failed to get current SAMM CLI version: ${error instanceof Error ? error.message : String(error)}`);
         });
         const latestVersion = await this.getLatestAvailableSammCliReleaseTag().catch(error => {
-            throw new Error(`Failed to check for latest SAMM-CLI release: ${error instanceof Error ? error.message : String(error)}`);
+            throw new Error(`Failed to check for latest SAMM CLI release: ${error instanceof Error ? error.message : String(error)}`);
         });
 
         if (this.compareVersions(latestVersion, currentVersion) > 0) {
             const label = currentVersion
-                ? `There is a new SAMM-CLI release available: ${currentVersion} -> ${latestVersion}`
-                : `SAMM-CLI ${latestVersion} is available`;
-            vscode.window.showInformationMessage(label, 'Download & Use').then(async (selection) => {
-                if (selection === 'Download & Use') {
+                ? `There is a new SAMM CLI release available: ${currentVersion} -> ${latestVersion}`
+                : `SAMM CLI ${latestVersion} is available`;
+            vscode.window.showInformationMessage(label, 'Download and use').then(async (selection) => {
+                if (selection === 'Download and use') {
                     try {
                         const newPath = await this.downloadRelease(latestVersion, type);
                         await this.settings.setSammCliPath(newPath);
-                        vscode.window.showInformationMessage(`SAMM-CLI ${latestVersion} has been downloaded and configured for use.`);
+                        vscode.window.showInformationMessage(`SAMM CLI ${latestVersion} has been downloaded and configured for use.`);
                     } catch (error) {
-                        const message = error instanceof Error ? error.message : 'An unknown error occurred while downloading the latest SAMM-CLI release.';
+                        const message = error instanceof Error ? error.message : 'An unknown error occurred while downloading the latest SAMM CLI release.';
                         vscode.window.showErrorMessage(message);
                     }
                 }
@@ -82,7 +82,7 @@ export class SammCliDownloader {
         const releases = await this.getRecentSammCliReleaseTags(1);
 
         if (releases.length === 0) {
-            throw new Error('No SAMM-CLI releases are available on GitHub.');
+            throw new Error('No SAMM CLI releases are available on GitHub.');
         }
 
         return releases[0];
@@ -97,7 +97,7 @@ export class SammCliDownloader {
         });
 
         if (!response.ok) {
-            return Promise.reject(new Error(this.describeGitHubError('Failed to fetch SAMM-CLI releases from GitHub', response)));
+            return Promise.reject(new Error(this.describeGitHubError('Failed to fetch SAMM CLI releases from GitHub', response)));
         }
 
         const releases = await response.json() as Array<GitHubRelease>;
@@ -179,7 +179,7 @@ export class SammCliDownloader {
 
         if (!response.ok) {
             const target = releaseVersion && releaseVersion !== 'latest' ? `release ${releaseVersion}` : 'the latest release';
-            throw new Error(this.describeGitHubError(`Failed to fetch samm-cli ${target}`, response));
+            throw new Error(this.describeGitHubError(`Failed to fetch SAMM CLI ${target}`, response));
         }
 
         return response.json() as Promise<GitHubRelease>;
@@ -201,7 +201,7 @@ export class SammCliDownloader {
             throw new Error(`Failed to download the language server from ${downloadUrl}: ${response.status} ${response.statusText}`);
         }
 
-        await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Downloading Language Server (samm-cli)...' }, async () => {
+        await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Downloading Language Server (SAMM CLI)...' }, async () => {
             try {
                 await pipeline(
                     Readable.fromWeb(response.body as unknown as globalThis.ReadableStream<Uint8Array>),
@@ -232,10 +232,10 @@ export class SammCliDownloader {
         });
 
         if (!response.ok || !response.body) {
-            throw new Error(`Failed to download the SAMM-CLI JAR from ${downloadUrl}: ${response.status} ${response.statusText}`);
+            throw new Error(`Failed to download the SAMM CLI JAR from ${downloadUrl}: ${response.status} ${response.statusText}`);
         }
 
-        await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Downloading SAMM-CLI JAR...' }, async () => {
+        await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Downloading SAMM CLI JAR...' }, async () => {
             await pipeline(
                 Readable.fromWeb(response.body as unknown as globalThis.ReadableStream<Uint8Array>),
                 createWriteStream(targetPath),
@@ -270,7 +270,7 @@ export class SammCliDownloader {
 
     private async ensureExecutableIsReady(executablePath: string, platform: string, releaseTag: string): Promise<void> {
         if (!await this.fileExists(executablePath)) {
-            throw new Error(`Downloaded samm-cli ${releaseTag} did not contain expected executable at ${executablePath}.`);
+            throw new Error(`Downloaded SAMM CLI ${releaseTag} did not contain expected executable at ${executablePath}.`);
         }
 
         if (platform === 'win32') {
@@ -280,12 +280,12 @@ export class SammCliDownloader {
         try {
             await access(executablePath, constants.X_OK);
         } catch {
-            throw new Error(`Downloaded samm-cli executable is not marked as executable: ${executablePath}`);
+            throw new Error(`Downloaded SAMM CLI executable is not marked as executable: ${executablePath}`);
         }
     }
 
     /**
-     * Compares two SAMM-CLI version tags (e.g. `v2.10.0`, `2.12.0`).
+     * Compares two SAMM CLI version tags (e.g. `v2.10.0`, `2.12.0`).
      * Returns a positive number when `a` is newer than `b`, a negative number
      * when it is older, and `0` when they are equal. Pre-release suffixes are
      * ignored. An unparsable/empty version is treated as the oldest.

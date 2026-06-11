@@ -37,7 +37,7 @@
       },
       {
         "command": "turtle.selectSammCliExecutable",
-        "title": "Select SAMM-CLI Executable",
+        "title": "Select SAMM CLI Executable",
         "category": "Turtle"
       }
     ],
@@ -63,19 +63,19 @@
         "turtle.languageServerSettings.activateEmbeddedLanguageServer": {
           "type": "boolean",
           "default": true,
-          "description": "When enabled, the extension starts the SAMM-CLI language server process at the path configured below. When disabled, an external language server must be started manually.",
+          "description": "When enabled, the extension starts the SAMM CLI language server process at the path configured below. When disabled, an external language server must be started manually.",
           "order": 0
         },
         "turtle.languageServerSettings.automaticUpdateCheck": {
           "type": "boolean",
           "default": true,
-          "description": "Automatically check for updates of the SAMM-CLI language server and notify when a new version is available.",
+          "description": "Automatically check for updates of the SAMM CLI language server and notify when a new version is available.",
           "order": 1
         },
         "turtle.languageServerSettings.sammCliPath": {
           "type": "string",
           "default": "",
-          "description": "Path to the SAMM CLI executable or jar file to use as the language server. Can be downloaded / set via the 'Select SAMM-CLI Executable' command.",
+          "description": "Path to the SAMM CLI executable or jar file to use as the language server. Can be downloaded / set via the 'Select SAMM CLI Executable' command.",
           "order": 2
         },
         "turtle.languageServerSettings.serverPort": {
@@ -123,12 +123,12 @@
         "description": "Learn how to use the RDF/Turtle and SAMM Aspect Models extension to validate your Turtle files and SAMM aspect models.\nThis walkthrough will guide you through the key features of the extension, including validating your Turtle files and SAMM aspect models using the integrated language server.",
         "steps": [
           {
-            "id": "select-samm-cli",
-            "title": "Selecting a SAMM-CLI Executable",
-            "description": "Initial setup requires you to either Download or manually select a SAMM CLI, containing the required SAMM Lanuage Server \n[Download or Select SAMM CLI](command:turtle.selectSammCliExecutable)",
+            "id": "select-SAMM CLI",
+            "title": "Selecting a SAMM CLI Executable",
+            "description": "Initial setup requires you to either download or manually select a SAMM CLI, containing the required SAMM Language Server \n[Download or Select SAMM CLI](command:turtle.selectSammCliExecutable)",
             "media": {
               "image": "media/walkthrough_select_samm_cli.png",
-              "altText": "Example of selecting a SAMM-CLI executable"
+              "altText": "Example of selecting a SAMM CLI executable"
             }
           },
           {

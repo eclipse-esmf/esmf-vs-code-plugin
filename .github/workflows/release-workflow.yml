@@ -70,8 +70,9 @@ jobs:
           path: turtle-${{ env.RELEASE_VERSION }}.vsix
           if-no-files-found: error
 
-      - name: Publish to VS Code Marketplace
-        run: npx @vscode/vsce publish --pat "${{ secrets.VS_MARKETPLACE_TOKEN }}"
+      # Disabled until https://gitlab.eclipse.org/eclipsefdn/helpdesk/-/work_items/7565 is resolved
+      # - name: Publish to VS Code Marketplace
+      #   run: npx @vscode/vsce publish --pat "${{ secrets.VS_MARKETPLACE_TOKEN }}"
       
       - name: Commit version changes and push to upstream repository
         uses: stefanzweifel/git-auto-commit-action@04702edda442b2e678b25b537cec683a1493fcb9 # v7.1.0

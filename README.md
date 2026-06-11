@@ -5,18 +5,18 @@ VS Code extension for the ESMF SDK Turtle language server. The extension support
 ## Configuration
 
 - `turtle.languageServerSettings.activateEmbeddedLanguageServer` (boolean, default: `true`)
-  - When enabled, the extension starts the SAMM-CLI language server process. When disabled, an external language server must be started manually.
+  - When enabled, the extension starts the SAMM CLI language server process. When disabled, an external language server must be started manually.
 - `turtle.languageServerSettings.automaticUpdateCheck` (boolean, default: `true`)
-  - Automatically check for updates of the SAMM-CLI language server and notify when a new version is available.
+  - Automatically check for updates of the SAMM CLI language server and notify when a new version is available.
 - `turtle.languageServerSettings.sammCliPath` (string)
-  - Path to the SAMM CLI executable or jar file to use as the language server. Can be downloaded / set via the 'Select SAMM-CLI Executable' command.
+  - Path to the SAMM CLI executable or jar file to use as the language server. Can be downloaded / set via the 'Select SAMM CLI Executable' command.
 - `turtle.languageServerSettings.serverPort` (number, default: `1846`)
   - TCP port used to connect to the Turtle/SAMM language server.
 - `turtle.languageServerSettings.traceLevel` (string, default: `off`)
   - Controls the verbosity of language client protocol tracing. Options: `off`, `messages`, `verbose`.
 
-Use the command `Turtle: Select SAMM-CLI Executable` to choose either:
-- one of the latest 10 SAMM-CLI GitHub releases, or
+Use the command `Turtle: Select SAMM CLI Executable` to choose either:
+- one of the latest SAMM CLI GitHub releases, or
 - a custom executable path from your local file system.
 
 ## Features
@@ -63,7 +63,7 @@ When each validation runs:
 
 - `Turtle: Validate document now`
   - Sends a server request for the active Turtle document.
-- `Turtle: Select SAMM-CLI Executable`
+- `Turtle: Select SAMM CLI Executable`
   - Opens a quick pick with the latest 10 GitHub releases and a custom-path option.
 - `Turtle: Restart and reconnect to Language Server`
   - Restarts the language server and reconnects the client.
