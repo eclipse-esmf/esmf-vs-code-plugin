@@ -1,0 +1,5 @@
+# Invalid Turtle — missing dot after prefix declaration and bad triple
+@prefix ex: <http://example.org/>  .
+
+ex:Alice foaf:name "Alice"  . # missing . terminator
+ex:Bob ex:knows ex:Alice .   # foaf:name used without prefix

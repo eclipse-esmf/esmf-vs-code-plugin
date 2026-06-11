@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN">
+  <Properties>
+    <Property name="logDir">logs</Property>
+    <Property name="logFile">${logDir}/lsp-server.log</Property>
+    <Property name="logPattern">%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%t] %c{1} - %msg%n</Property>
+  </Properties>
+  <Appenders>
+    <RollingFile
+      name="File"
+      fileName="${logFile}"
+      filePattern="${logDir}/archive/lsp-server-%d{yyyy-MM-dd}-%i.log.gz">
+      <PatternLayout pattern="${logPattern}"/>
+      <Policies>
+        <SizeBasedTriggeringPolicy size="10 MB"/>
+      </Policies>
+      <DefaultRolloverStrategy max="10"/>
+    </RollingFile>
+  </Appenders>
+  <Loggers>
+    <Root level="info">
+      <AppenderRef ref="File"/>
+    </Root>
+    <Logger name="com.example.turtlelsp" level="debug" additivity="false">
+      <AppenderRef ref="File"/>
+    </Logger>
+  </Loggers>
+</Configuration>

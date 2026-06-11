@@ -1,0 +1,64 @@
+{
+  "name": "extension",
+  "displayName": "Turtle LSP",
+  "description": "VS Code extension for Turtle LSP",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.110.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onLanguage:turtle",
+    "onCommand:turtleLsp.validateAspectModelNow"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "turtleLsp.validateAspectModelNow",
+        "title": "Validate Aspect Model Now",
+        "category": "Turtle LSP"
+      }
+    ],
+    "languages": [
+      {
+        "id": "turtle",
+        "aliases": [
+          "Turtle",
+          "turtle",
+          "RDF Turtle"
+        ],
+        "extensions": [
+          ".ttl"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ]
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "build-watch": "tsc -p tsconfig.json --watch",
+    "prettier": "prettier --config .prettierrc --write './src/**/*{.ts,.js,.json}'",
+    "test": "jest --reporters default jest-stare",
+    "test:prettier": "prettier --config .prettierrc --list-different './src/**/*{.ts,.js,.json}'",
+    "test:coverage": "jest --coverage --reporters default jest-stare",
+    "lint": "eslint . --ext .ts",
+    "lint:fix": "eslint . --ext .ts --fix"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "22.x",
+    "@types/vscode": "^1.110.0",
+    "@vscode/test-cli": "^0.0.12",
+    "@vscode/test-electron": "^2.5.2",
+    "eslint": "^9.39.3",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.56.1"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1"
+  }
+}
