@@ -1,0 +1,175 @@
+{
+  "name": "turtle",
+  "displayName": "RDF/Turtle and SAMM Aspect Models",
+  "description": "Support for RDF/Turtle and SAMM Aspect Models",
+  "version": "0.0.1",
+  "publisher": "ESMF",
+  "icon": "media/esmf-logo.png",
+  "license": "MPL-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/eclipse-esmf/esmf-vs-code-plugin.git"
+  },
+  "bugs": {
+    "url": "https://github.com/eclipse-esmf/esmf-vs-code-plugin/issues"
+  },
+  "engines": {
+    "vscode": "^1.110.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "onLanguage:turtle"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "turtle.validateDocumentNow",
+        "title": "Validate document now",
+        "category": "Turtle"
+      },
+      {
+        "command": "turtle.restartLanguageServices",
+        "title": "Restart and reconnect to Language Server",
+        "category": "Turtle"
+      },
+      {
+        "command": "turtle.selectSammCliExecutable",
+        "title": "Select SAMM CLI Executable",
+        "category": "Turtle"
+      }
+    ],
+    "languages": [
+      {
+        "id": "turtle",
+        "aliases": [
+          "Turtle",
+          "turtle",
+          "RDF/Turtle"
+        ],
+        "extensions": [
+          ".ttl"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "configuration": {
+      "title": "RDF/Turtle and SAMM Aspect Models",
+      "type": "object",
+      "description": "Configuration settings for RDF/Turtle and SAMM Aspect Models extension.",
+      "properties": {
+        "turtle.languageServerSettings.activateEmbeddedLanguageServer": {
+          "type": "boolean",
+          "default": true,
+          "description": "When enabled, the extension starts the SAMM CLI language server process at the path configured below. When disabled, an external language server must be started manually.",
+          "order": 0
+        },
+        "turtle.languageServerSettings.automaticUpdateCheck": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically check for updates of the SAMM CLI language server and notify when a new version is available.",
+          "order": 1
+        },
+        "turtle.languageServerSettings.sammCliPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the SAMM CLI executable or jar file to use as the language server. Can be downloaded / set via the 'Select SAMM CLI Executable' command.",
+          "order": 2
+        },
+        "turtle.languageServerSettings.serverPort": {
+          "type": "number",
+          "default": 1846,
+          "description": "TCP port used to connect to the Turtle/SAMM language server.",
+          "order": 3
+        },
+        "turtle.languageServerSettings.traceLevel": {
+          "type": "string",
+          "enum": [
+            "off",
+            "messages",
+            "verbose"
+          ],
+          "enumDescriptions": [
+            "No tracing.",
+            "Log request/response message names.",
+            "Log full message contents."
+          ],
+          "default": "off",
+          "description": "Controls the verbosity of language client protocol tracing in the output channel.",
+          "order": 4
+        }
+      }
+    },
+    "configurationDefaults": {
+      "[turtle]": {
+        "editor.semanticHighlighting.enabled": true
+      }
+    },
+    "menus": {
+      "editor/context": [
+        {
+          "command": "turtle.validateDocumentNow",
+          "when": "resourceLangId == turtle",
+          "group": "1_modification"
+        }
+      ]
+    },
+    "walkthroughs": [
+      {
+        "id": "turtle-getting-started",
+        "title": "Getting Started with RDF/Turtle and SAMM Aspect Models Extension",
+        "description": "Learn how to use the RDF/Turtle and SAMM Aspect Models extension to validate your Turtle files and SAMM aspect models.\nThis walkthrough will guide you through the key features of the extension, including validating your Turtle files and SAMM aspect models using the integrated language server.",
+        "steps": [
+          {
+            "id": "select-SAMM CLI",
+            "title": "Selecting a SAMM CLI Executable",
+            "description": "Initial setup requires you to either download or manually select a SAMM CLI, containing the required SAMM Language Server \n[Download or Select SAMM CLI](command:turtle.selectSammCliExecutable)",
+            "media": {
+              "image": "media/walkthrough_select_samm_cli.png",
+              "altText": "Example of selecting a SAMM CLI executable"
+            }
+          },
+          {
+            "id": "validation",
+            "title": "Validating Turtle Files and SAMM Aspect Models",
+            "description": "To validate a Turtle file or a SAMM aspect model, simply open it in VS Code. The extension will automatically connect to the language server and display any validation issues in the Problems panel. You can also trigger validation manually using the 'Validate document now' command from the Command Palette.",
+            "media": {
+              "image": "media/walkthrough_validation.png",
+              "altText": "Example of validation issues shown in the Problems panel"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run build",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run build && npm run lint",
+    "build": "tsc -p tsconfig.json",
+    "build-watch": "tsc -p tsconfig.json --watch",
+    "prettier": "prettier --config .prettierrc --write './src/**/*{.ts,.js,.json}'",
+    "test": "vscode-test --config .vscode-test.mjs",
+    "test:prettier": "prettier --config .prettierrc --list-different './src/**/*{.ts,.js,.json}'",
+    "test:coverage": "vscode-test --config .vscode-test.mjs --coverage --coverage-reporter text --coverage-reporter lcov",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/node": "22.x",
+    "@types/vscode": "^1.110.0",
+    "@vscode/test-cli": "^0.0.12",
+    "@vscode/test-electron": "^2.5.2",
+    "eslint": "^9.39.3",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.56.1"
+  },
+  "dependencies": {
+    "extract-zip": "^2.0.1",
+    "tar": "^7.5.15",
+    "vscode-languageclient": "^9.0.1"
+  }
+}

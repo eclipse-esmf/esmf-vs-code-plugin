@@ -1,0 +1,97 @@
+name: Publish VS Code Extension
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_version:
+        description: 'Release version (semantic versioning, e.g. 1.2.3)'
+        required: true
+        type: string
+
+permissions: {}
+
+env:
+  RELEASE_VERSION: ${{ github.event.inputs.release_version }}
+
+jobs:
+  publish:
+    name: Package and Publish to Marketplace
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+      issues: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 #v6.0.1
+        with:
+          persist-credentials: true
+
+      - name: Validate version input
+        run: |
+          if [[ ! "${RELEASE_VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Error: '${RELEASE_VERSION}' is not a valid semantic version (expected format: X.Y.Z)"
+            exit 1
+          fi
+          echo "Version '${RELEASE_VERSION}' is valid."
+
+      - name: Setup Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # 6.4.0
+        with:
+          node-version: 22
+          package-manager-cache: false
+
+      - name: Set version in package.json
+        run: |
+          npm version --no-git-tag-version -- "${RELEASE_VERSION}"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+      - name: Test
+        run: xvfb-run -a npm run test
+
+      - name: Package VSIX
+        run: |
+          npx @vscode/vsce package --out "turtle-${RELEASE_VERSION}.vsix"
+
+      - name: Upload VSIX artifact
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f #v6.0.0
+        with:
+          name: turtle-vsix
+          path: turtle-${{ env.RELEASE_VERSION }}.vsix
+          if-no-files-found: error
+
+      # Disabled until https://gitlab.eclipse.org/eclipsefdn/helpdesk/-/work_items/7565 is resolved
+      # - name: Publish to VS Code Marketplace
+      #   run: npx @vscode/vsce publish --pat "${{ secrets.VS_MARKETPLACE_TOKEN }}"
+      
+      - name: Commit version changes and push to upstream repository
+        uses: stefanzweifel/git-auto-commit-action@04702edda442b2e678b25b537cec683a1493fcb9 # v7.1.0
+        with:
+          branch: ${{ env.release_branch_name }}
+          commit_user_name: github-actions
+          commit_user_email: github-actions@github.com
+          commit_author: Author <actions@github.com>
+          file_pattern: 'package.json, package-lock.json'
+      
+      - name: Create Github release (full)
+        uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v0.1.15
+        with:
+          body: "Release version ${{ env.RELEASE_VERSION }}."
+          tag_name: v${{ env.RELEASE_VERSION }}
+          target_commitish: ${{ env.release_branch_name }}
+          draft: false
+          prerelease: false
+          files: |
+            turtle-${{ env.RELEASE_VERSION }}.vsix
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
