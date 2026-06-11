@@ -71,7 +71,7 @@ jobs:
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f #v6.0.0
         with:
           name: turtle-vsix
-          path: extension/turtle-${{ env.RELEASE_VERSION }}.vsix
+          path: turtle-${{ env.RELEASE_VERSION }}.vsix
           if-no-files-found: error
 
       - name: Publish to VS Code Marketplace
