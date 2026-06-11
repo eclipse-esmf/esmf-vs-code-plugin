@@ -82,8 +82,7 @@ function queueLanguageServicesRestart(reason: string): Promise<void> {
     restartChain = restartChain
         .then(() => restartLanguageServices(reason))
         .catch(error => {
-            outputChannel.error(`Restart pipeline failed: ${error instanceof Error ? error.message : String(error)}`);
-            throw error;
+            vscode.window.showErrorMessage(`Failed to start required language services: ${error instanceof Error ? error.message : String(error)}`);
         });
 
     return restartChain;

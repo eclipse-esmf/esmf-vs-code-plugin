@@ -18,7 +18,6 @@ import { spawn } from 'node:child_process';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import extractZip = require('extract-zip');
-import * as path from 'node:path';
 import * as tar from 'tar';
 import { TurtleExtensionSettings } from './settings';
 import type { ExtensionLogger } from './outputChannel';
@@ -37,9 +36,7 @@ interface GitHubRelease {
 }
 
 const SAMM_CLI_STORAGE_DIR = 'samm-cli';
-// GitHub returns up to 100 releases per page; fetch a full page so that
-// filtering out drafts/prereleases still leaves enough stable releases.
-const RELEASES_PAGE_SIZE = 100;
+const RELEASES_PAGE_SIZE = 20;
 
 export class SammCliDownloader {
     constructor(

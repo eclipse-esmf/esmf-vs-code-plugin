@@ -6,7 +6,7 @@
       "type": "extensionHost",
       "request": "launch",
       "args": [
-        "--extensionDevelopmentPath=${workspaceFolder}/extension"
+        "--extensionDevelopmentPath=${workspaceFolder}"
       ],
       "sourceMaps": true,
       "outFiles": [
