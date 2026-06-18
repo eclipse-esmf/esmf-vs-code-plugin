@@ -68,9 +68,6 @@ export class AspectValidationController {
                 const editor = vscode.window.activeTextEditor;
                 await this.validateDocument(editor?.document, 'manual');
             }),
-            this.workspace.onDidSaveTextDocument(async document => {
-                await this.validateDocument(document, 'save');
-            }),
         );
     }
 
