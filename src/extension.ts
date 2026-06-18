@@ -38,7 +38,7 @@ export async function activate(ctx: vscode.ExtensionContext): Promise<void> {
     const logOutputChannel = vscode.window.createOutputChannel('RDF/Turtle and SAMM Aspect Models Language Server', { log: true });
     context.subscriptions.push(logOutputChannel);
     outputChannel = logOutputChannel;
-    settings = new TurtleExtensionSettings(context);
+    settings = new TurtleExtensionSettings();
     sammCliDownloader = new SammCliDownloader(context, settings, outputChannel);
     languageClient = new TurtleLanguageClient(outputChannel, settings.getSammCliLspServerPort(), settings.getLanguageClientTraceLevel());
     aspectValidationController = new AspectValidationController(createUnavailableClient(), vscode.window, vscode.workspace, outputChannel);
@@ -81,8 +81,13 @@ export async function activate(ctx: vscode.ExtensionContext): Promise<void> {
 function queueLanguageServicesRestart(reason: string): Promise<void> {
     restartChain = restartChain
         .then(() => restartLanguageServices(reason))
-        .catch(error => {
-            vscode.window.showErrorMessage(`Failed to start required language services: ${error instanceof Error ? error.message : String(error)}`);
+        .catch(async error => {
+            const selection = await vscode.window.showErrorMessage(`Failed to start required language services: ${error instanceof Error ? error.message : String(error)}`, 'Configure SAMM CLI Executable', 'Check Extension Settings');
+            if (selection === 'Configure SAMM CLI Executable') {
+                void selectSammCliExecutable();
+            } else if (selection === 'Check Extension Settings') {
+                void vscode.commands.executeCommand('workbench.action.openSettings', 'turtle.languageServerSettings');
+            }
         });
 
     return restartChain;
@@ -188,6 +193,7 @@ async function selectSammCliExecutable(): Promise<void> {
             return;
         }
         await settings.setSammCliPath(selectedPath);
+        await settings.setEmbeddedLanguageServerStartEnabled(true);
         restartReason = `Changed SAMM CLI to custom executable: ${selectedPath}`;
     } else {
         if (!pick.releaseTag) {
@@ -199,6 +205,7 @@ async function selectSammCliExecutable(): Promise<void> {
         }
         const downloadedPath = await sammCliDownloader.downloadRelease(pick.releaseTag, downloadType);
         await settings.setSammCliPath(downloadedPath);
+        await settings.setEmbeddedLanguageServerStartEnabled(true);
         restartReason = `Changed SAMM CLI to GitHub release ${pick.releaseTag} (${downloadType === 'jar' ? 'JAR' : 'native executable'})`;
     }
 
@@ -230,6 +237,7 @@ async function promptForDownloadType(): Promise<'native' | 'jar' | undefined> {
 
 async function promptForCustomExecutablePath(): Promise<string | undefined> {
     const selection = await vscode.window.showOpenDialog({
+        defaultUri: vscode.Uri.file(settings.getSammCliPath() || ''),
         canSelectFiles: true,
         canSelectFolders: false,
         canSelectMany: false,

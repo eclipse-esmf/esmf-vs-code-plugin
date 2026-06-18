@@ -37,6 +37,7 @@ interface GitHubRelease {
 
 const SAMM_CLI_STORAGE_DIR = 'SAMM CLI';
 const RELEASES_PAGE_SIZE = 20;
+const SAMM_CLI_MINIMUM_SUPPORTED_VERSION = 'v2.15.0';
 
 export class SammCliDownloader {
     constructor(
@@ -103,6 +104,7 @@ export class SammCliDownloader {
         const releases = await response.json() as Array<GitHubRelease>;
         return releases
             .filter(release => !release.draft && !release.prerelease)
+            .filter(release => this.compareVersions(release.tag_name, SAMM_CLI_MINIMUM_SUPPORTED_VERSION) >= 0)
             .map(release => release.tag_name)
             .slice(0, limit);
     }
