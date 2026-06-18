@@ -14,12 +14,13 @@
 import * as vscode from 'vscode';
 
 export class TurtleExtensionSettings {
-    constructor(
-        private readonly context: vscode.ExtensionContext,
-    ) { }
 
     isEmbeddedLanguageServerStartEnabled(): boolean {
         return vscode.workspace.getConfiguration('turtle.languageServerSettings').get<boolean>('activateEmbeddedLanguageServer', true);
+    }
+
+    async setEmbeddedLanguageServerStartEnabled(enabled: boolean): Promise<void> {
+        await vscode.workspace.getConfiguration('turtle.languageServerSettings').update('activateEmbeddedLanguageServer', enabled, vscode.ConfigurationTarget.Global);
     }
 
     getSammCliPath(): string {
