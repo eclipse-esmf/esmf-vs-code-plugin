@@ -11,6 +11,41 @@ file, You can obtain one at https://mozilla.org/MPL/2.0/.
 SPDX-License-Identifier: MPL-2.0
 ////
 
+= Semantic Models for VS Code
 
-= Semantic Models VS Code Plugin
+Semantic Models for VS Code is a Visual Studio code extensions for editing SAMM Aspect Models and
+other RDF/Turtle documents.
 
+For RDF/Turtle documents, it features syntax highlighting, document outline and automatic syntactic
+validation. For SAMM Aspect Models, it additionally features "go to definition" for elements and
+semantic model validation.
+
+== Getting Started
+
+=== Installation
+
+Semantic Models for VS Code can be installed either manually, or via the VS Code Marketplace.
+
+For a manual installation, open the
+https://github.com/eclipse-esmf/esmf-vs-code-plugin/releases[Releases] page and download the `.vsix`
+file of the latest version. In VS Code, open Extensions, click `...` on the top right
+of the panel and select "Install from VSIX...".
+
+== Configuration
+
+After the installation of the extension, the initial setup requires you to either download or
+manually select a SAMM CLI, which provides the required SAMM Language Server. You can also re-run
+this step again at a later point to change your configuration by using the command +Select
+SAMM CLI Executable+ from the Command Palette.
+
+image::walkthrough_select_samm_cli.png[width=100%]
+
+
+== Model Validation
+
+To validate an RDF/Turtle file or a SAMM Aspect Model, simply open it in VS Code. The extension will
+automatically connect to the language server and display any validation issues in the Problems
+panel. You can also trigger validation manually using the 'Validate document now' command from the
+Command Palette.
+
+image::walkthrough_validation.png[width=100%]
