@@ -61,19 +61,19 @@ jobs:
 
       - name: Package VSIX
         run: |
-          npx @vscode/vsce package --out "turtle-${RELEASE_VERSION}.vsix"
+          npx @vscode/vsce package --out "semantic-models-${RELEASE_VERSION}.vsix"
 
       - name: Upload VSIX artifact
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f #v6.0.0
         with:
-          name: turtle-vsix
-          path: turtle-${{ env.RELEASE_VERSION }}.vsix
+          name: semantic-models-vsix
+          path: semantic-models-${{ env.RELEASE_VERSION }}.vsix
           if-no-files-found: error
 
       # Disabled until https://gitlab.eclipse.org/eclipsefdn/helpdesk/-/work_items/7565 is resolved
       # - name: Publish to VS Code Marketplace
       #   run: npx @vscode/vsce publish --pat "${{ secrets.VS_MARKETPLACE_TOKEN }}"
-      
+
       - name: Commit version changes and push to upstream repository
         uses: stefanzweifel/git-auto-commit-action@04702edda442b2e678b25b537cec683a1493fcb9 # v7.1.0
         with:
@@ -82,8 +82,8 @@ jobs:
           commit_user_email: github-actions@github.com
           commit_author: Author <actions@github.com>
           file_pattern: 'package.json, package-lock.json'
-      
-      - name: Create Github release (full)
+
+      - name: Create Github release
         uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v0.1.15
         with:
           body: "Release version ${{ env.RELEASE_VERSION }}."
@@ -92,6 +92,6 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            turtle-${{ env.RELEASE_VERSION }}.vsix
+            semantic-models-${{ env.RELEASE_VERSION }}.vsix
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
