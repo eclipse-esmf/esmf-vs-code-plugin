@@ -1,6 +1,11 @@
-# RDF/Turtle and SAMM Aspect Models
+# Semantic Models for VS Code
 
-VS Code extension for the ESMF SDK Turtle language server. The extension supports prefix `Go to Definition`, fast syntax feedback while typing, and server-driven heavy Aspect validation for SAMM-style Turtle models.
+Semantic Models for VS Code is a Visual Studio code extensions for editing SAMM Aspect Models and
+other RDF/Turtle documents.
+
+For RDF/Turtle documents, it features syntax highlighting, document outline and automatic syntactic
+validation. For SAMM Aspect Models, it additionally features "go to definition" for elements and
+semantic model validation.
 
 ## Configuration
 

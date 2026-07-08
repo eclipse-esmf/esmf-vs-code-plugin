@@ -3,9 +3,13 @@
 src/**
 .gitignore
 .yarnrc
-vsc-extension-quickstart.md
+.prettierrc
+CONTRIBUTING.md
+CONVENTIONS.MD
+LICENSE
 **/tsconfig.json
 **/eslint.config.mjs
 **/*.map
 **/*.ts
 **/.vscode-test.*
+documentation/**

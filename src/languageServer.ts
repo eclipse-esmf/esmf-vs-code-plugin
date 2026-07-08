@@ -17,7 +17,7 @@ import * as net from 'node:net';
 import type { ExtensionLogger } from './outputChannel';
 import { JAVA_OPTIONS } from './constants';
 
-const SERVER_READY_TIMEOUT_MS = 10_000;
+const SERVER_READY_TIMEOUT_MS = 20_000;
 const SERVER_READY_RETRY_DELAY_MS = 250;
 
 export class TurtleLanguageServer {
