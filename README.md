@@ -1,4 +1,4 @@
-# RDF/Turtle and SAMM Aspect Models
+# Semantic Models VS Code Plugin
 
 VS Code extension for the ESMF SDK Turtle language server. The extension supports prefix `Go to Definition`, fast syntax feedback while typing, and server-driven heavy Aspect validation for SAMM-style Turtle models.
 

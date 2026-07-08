@@ -1,6 +1,6 @@
 {
   "name": "turtle",
-  "displayName": "RDF/Turtle and SAMM Aspect Models",
+  "displayName": "Semantic Models",
   "description": "Support for RDF/Turtle and SAMM Aspect Models",
   "version": "0.0.1",
   "publisher": "ESMF",
@@ -56,9 +56,9 @@
       }
     ],
     "configuration": {
-      "title": "RDF/Turtle and SAMM Aspect Models",
+      "title": "Semantic Models",
       "type": "object",
-      "description": "Configuration settings for RDF/Turtle and SAMM Aspect Models extension.",
+      "description": "Configuration settings for Semantic Models extension.",
       "properties": {
         "turtle.languageServerSettings.activateEmbeddedLanguageServer": {
           "type": "boolean",
@@ -119,8 +119,8 @@
     "walkthroughs": [
       {
         "id": "turtle-getting-started",
-        "title": "Getting Started with RDF/Turtle and SAMM Aspect Models Extension",
-        "description": "Learn how to use the RDF/Turtle and SAMM Aspect Models extension to validate your Turtle files and SAMM aspect models.\nThis walkthrough will guide you through the key features of the extension, including validating your Turtle files and SAMM aspect models using the integrated language server.",
+        "title": "Getting Started with Semantic Models Extension",
+        "description": "Learn how to use the Semantic Models extension to validate your RDF/Turtle files and SAMM Aspect Models.\nThis walkthrough will guide you through the key features of the extension, including validating your RDF/Turtle files and SAMM Aspect Models using the integrated language server.",
         "steps": [
           {
             "id": "select-SAMM CLI",
@@ -133,8 +133,8 @@
           },
           {
             "id": "validation",
-            "title": "Validating Turtle Files and SAMM Aspect Models",
-            "description": "To validate a Turtle file or a SAMM aspect model, simply open it in VS Code. The extension will automatically connect to the language server and display any validation issues in the Problems panel. You can also trigger validation manually using the 'Validate document now' command from the Command Palette.",
+            "title": "Validating RDF/Turtle Files and SAMM Aspect Models",
+            "description": "To validate an RDF/Turtle file or a SAMM Aspect Model, simply open it in VS Code. The extension will automatically connect to the language server and display any validation issues in the Problems panel. You can also trigger validation manually using the 'Validate document now' command from the Command Palette.",
             "media": {
               "image": "media/walkthrough_validation.png",
               "altText": "Example of validation issues shown in the Problems panel"
