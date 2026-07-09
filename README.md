@@ -1,24 +1,24 @@
 # Semantic Models for VS Code
 
-Semantic Models for VS Code is a Visual Studio code extensions for editing SAMM Aspect Models and
-other RDF/Turtle documents.
+Semantic Models for VS Code is a Visual Studio Code extension for editing
+RDF/Turtle documents, including SAMM Aspect Models.
 
-For RDF/Turtle documents, it features syntax highlighting, document outline and automatic syntactic
-validation. For SAMM Aspect Models, it additionally features "go to definition" for elements and
-semantic model validation.
+For RDF/Turtle documents, it features syntax highlighting, document outline and
+automatic syntax validation. For SAMM Aspect Models, the extension additionally
+features *Go to Definition* for elements and semantic model validation.
 
 ## Configuration
 
 - `turtle.languageServerSettings.activateEmbeddedLanguageServer` (boolean, default: `true`)
-  - When enabled, the extension starts the SAMM CLI language server process. When disabled, an external language server must be started manually.
+  - When enabled, the extension starts the SAMM language server process. When disabled, an external language server must be started manually.
 - `turtle.languageServerSettings.automaticUpdateCheck` (boolean, default: `true`)
-  - Automatically check for updates of the SAMM CLI language server and notify when a new version is available.
+  - Automatically check for updates to the SAMM language server and notify when a new version is available.
 - `turtle.languageServerSettings.sammCliPath` (string)
-  - Path to the SAMM CLI executable or jar file to use as the language server. Can be downloaded / set via the 'Select SAMM CLI Executable' command.
+  - Path to the SAMM CLI executable or JAR file to use as the language server. Can be downloaded or selected using the 'Select SAMM CLI Executable' command.
 - `turtle.languageServerSettings.serverPort` (number, default: `1846`)
-  - TCP port used to connect to the Turtle/SAMM language server.
+  - TCP port used to connect to the SAMM language server.
 - `turtle.languageServerSettings.traceLevel` (string, default: `off`)
-  - Controls the verbosity of language client protocol tracing. Options: `off`, `messages`, `verbose`.
+  - Controls the verbosity of Language Server Protocol (LSP) tracing. Options: `off`, `messages`, `verbose`.
 
 Use the command `Turtle: Select SAMM CLI Executable` to choose either:
 - one of the latest SAMM CLI GitHub releases, or
@@ -28,57 +28,58 @@ Use the command `Turtle: Select SAMM CLI Executable` to choose either:
 
 - Prefix `Go to Definition` inside Turtle files.
 - Two-level validation:
-  - Fast feedback on type from the regular Turtle parser diagnostics provided by the server (appear in the editor and `Problems`).
-  - Heavy Aspect validation from the server for model-level issues (results shown in notifications and status bar).
+  - Fast validation while typing from the regular Turtle parser diagnostics provided by the server (appear in the editor and `Problems`).
+  - Full Aspect validation from the server for model-level issues (results shown in notifications and status bar).
 - Manual validation command:
-  - `Turtle: Validate document now`
+  - `Turtle: Validate Document Now`
 
-## Run The Server And Extension Together
+## Running the Server and Extension Together
 
-1. In this extension project, install dependencies with `npm install`.
-2. Compile the extension with `npm run build`.
+1. In this extension project, install the dependencies using `npm install`.
+2. Build the extension with `npm run build`.
 3. Press `F5` in VS Code to open an Extension Development Host.
-4. Open a Turtle file such as [samples/valid.ttl](samples/valid.ttl) or your Aspect model file.
+4. Open an RDF/Turtle file such as [samples/valid.ttl](samples/valid.ttl) or your Aspect model file.
 
-If the server cannot be downloaded or started, the extension shows an error and leaves a detailed message in the Turtle LSP output channel.
+If the server cannot be downloaded or started, the extension shows an error and writes a detailed message in the Turtle LSP output channel.
 
 ## Validation Behavior
 
-Fast feedback on type:
+Fast feedback while typing:
 
 - Driven by the server's regular Turtle parsing diagnostics.
-- Results appear in the editor and `Problems` panel.
+- Results appear in the editor and `Problems` view.
 - Intended for quick editor feedback while you type.
 
-Heavy Aspect validation:
+Full Aspect validation:
 
 - Runs on the server, not in the extension.
 - Results are displayed in notification messages (for manual validation) or status bar (for save-triggered validation).
 - Always uses detailed server validation messaging when the server returns report text.
 - Always shows visible progress for long-running validation.
-- Runs automatically on save and can also be triggered manually.
+- Runs automatically when saving and can also be triggered manually.
 
 When each validation runs:
 
 - On type: fast syntax feedback only.
 - On save: heavy Aspect validation for Turtle documents.
-- Manual: `Turtle: Validate document now` for the active Turtle document.
+- Manual: `Turtle: Validate Document Now` for the active Turtle document.
 
 ## Commands
 
-- `Turtle: Validate document now`
+- `Turtle: Validate Document Now`
   - Sends a server request for the active Turtle document.
 - `Turtle: Select SAMM CLI Executable`
-  - Opens a quick pick with the latest 10 GitHub releases and a custom-path option.
-- `Turtle: Restart and reconnect to Language Server`
+  - Opens a quick pick with the latest ten GitHub releases and a custom-path option.
+- `Turtle: Restart Language Server Connection`
   - Restarts the language server and reconnects the client.
 
 ## UX During Long-Running Validation
 
 - Manual validation shows a progress notification while the request is running.
-- Save-triggered validation always uses a short status-bar progress indicator instead of repeated popups.
+- Save-triggered validation always uses a short status-bar progress indicator
+  instead of repeated pop-up notifications.
 - After completion, the user gets a summary message with validation results.
-- Automatic save validation keeps progress and completion feedback in the status bar.
+- Automatic save validation keeps progress and completion status in the status bar.
 
 ## Verify Go To Definition
 
@@ -102,8 +103,8 @@ Manual check:
 
 1. Open an Aspect model file.
 2. Run `Turtle: Validate document now`.
-3. Wait for the progress indicator to finish.
-4. Confirm that validation results appear in a notification message.
+3. Wait for validation to complete.
+4. Confirm that validation results are displayed in a notification.
 
 On-save check:
 

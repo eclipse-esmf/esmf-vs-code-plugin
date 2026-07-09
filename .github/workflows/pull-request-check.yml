@@ -39,11 +39,11 @@ jobs:
         run: xvfb-run -a npm run test
 
       - name: Package VSIX
-        run: npx @vscode/vsce package --out turtle-pr-${{ github.run_number }}.vsix
+        run: npx @vscode/vsce package --out semantic-models-pr-${{ github.run_number }}.vsix
 
       - name: Upload packaged VSIX artifact
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f #v6.0.0
         with:
-          name: turtle-vsix
-          path: turtle-pr-${{ github.run_number }}.vsix
+          name: semantic-models-vsix
+          path: semantic-models-pr-${{ github.run_number }}.vsix
           if-no-files-found: error
