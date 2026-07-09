@@ -1,7 +1,7 @@
 {
   "name": "turtle",
   "displayName": "Semantic Models",
-  "description": "Support for RDF/Turtle and SAMM Aspect Models",
+  "description": "Support for RDF/Turtle documents, including SAMM Aspect Models",
   "version": "0.0.1",
   "publisher": "ESMF",
   "icon": "media/esmf-logo.png",
@@ -27,12 +27,12 @@
     "commands": [
       {
         "command": "turtle.validateDocumentNow",
-        "title": "Validate document now",
+        "title": "Validate Document Now",
         "category": "Turtle"
       },
       {
         "command": "turtle.restartLanguageServices",
-        "title": "Restart and reconnect to Language Server",
+        "title": "Restart Language Server Connection",
         "category": "Turtle"
       },
       {
@@ -58,30 +58,30 @@
     "configuration": {
       "title": "Semantic Models",
       "type": "object",
-      "description": "Configuration settings for Semantic Models extension.",
+      "description": "Configuration settings for the Semantic Models extension.",
       "properties": {
         "turtle.languageServerSettings.activateEmbeddedLanguageServer": {
           "type": "boolean",
           "default": true,
-          "description": "When enabled, the extension starts the SAMM CLI language server process at the path configured below. When disabled, an external language server must be started manually.",
+          "description": "When enabled, the extension starts the SAMM language server using the executable configured below. When disabled, an external language server must be started manually.",
           "order": 0
         },
         "turtle.languageServerSettings.automaticUpdateCheck": {
           "type": "boolean",
           "default": true,
-          "description": "Automatically check for updates of the SAMM CLI language server and notify when a new version is available.",
+          "description": "Automatically check for updates to the SAMM language server and notify when a new version is available.",
           "order": 1
         },
         "turtle.languageServerSettings.sammCliPath": {
           "type": "string",
           "default": "",
-          "description": "Path to the SAMM CLI executable or jar file to use as the language server. Can be downloaded / set via the 'Select SAMM CLI Executable' command.",
+          "description": "Path to the SAMM CLI executable or JAR file to use as the language server. Can be downloaded or selected using the 'Select SAMM CLI Executable' command.",
           "order": 2
         },
         "turtle.languageServerSettings.serverPort": {
           "type": "number",
           "default": 1846,
-          "description": "TCP port used to connect to the Turtle/SAMM language server.",
+          "description": "TCP port used to connect to the SAMM language server.",
           "order": 3
         },
         "turtle.languageServerSettings.traceLevel": {
@@ -97,7 +97,7 @@
             "Log full message contents."
           ],
           "default": "off",
-          "description": "Controls the verbosity of language client protocol tracing in the output channel.",
+          "description": "Controls the verbosity of Language Server Protocol (LSP) tracing in the output channel.",
           "order": 4
         }
       }
@@ -119,13 +119,13 @@
     "walkthroughs": [
       {
         "id": "turtle-getting-started",
-        "title": "Getting Started with Semantic Models Extension",
-        "description": "Learn how to use the Semantic Models extension to validate your RDF/Turtle files and SAMM Aspect Models.\nThis walkthrough will guide you through the key features of the extension, including validating your RDF/Turtle files and SAMM Aspect Models using the integrated language server.",
+        "title": "Getting Started with the Semantic Models Extension",
+        "description": "Learn how to use the Semantic Models extension to edit and validate your RDF/Turtle files, including SAMM Aspect Models.\nThis walkthrough will guide you through the key features of the extension, including validating your RDF/Turtle files and SAMM Aspect Models using the integrated language server.",
         "steps": [
           {
-            "id": "select-SAMM CLI",
-            "title": "Selecting a SAMM CLI Executable",
-            "description": "Initial setup requires you to either download or manually select a SAMM CLI, containing the required SAMM Language Server \n[Download or Select SAMM CLI](command:turtle.selectSammCliExecutable)",
+            "id": "select-samm-cli",
+            "title": "Select a SAMM CLI Executable",
+              "description": "Complete the initial setup by downloading or selecting a SAMM CLI executable, which provides the required SAMM Language Server.\n[Download or Select SAMM CLI](command:turtle.selectSammCliExecutable)",
             "media": {
               "image": "media/walkthrough_select_samm_cli.png",
               "altText": "Example of selecting a SAMM CLI executable"
@@ -134,7 +134,7 @@
           {
             "id": "validation",
             "title": "Validating RDF/Turtle Files and SAMM Aspect Models",
-            "description": "To validate an RDF/Turtle file or a SAMM Aspect Model, simply open it in VS Code. The extension will automatically connect to the language server and display any validation issues in the Problems panel. You can also trigger validation manually using the 'Validate document now' command from the Command Palette.",
+            "description": "To validate an RDF/Turtle file or a SAMM Aspect Model, simply open it in VS Code. The extension will automatically connect to the language server and display any validation issues in the Problems view. You can also trigger validation manually using the 'Validate Document Now' command from the Command Palette.",
             "media": {
               "image": "media/walkthrough_validation.png",
               "altText": "Example of validation issues shown in the Problems panel"
