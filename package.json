@@ -3,7 +3,7 @@
   "displayName": "Semantic Models",
   "description": "Support for RDF/Turtle documents, including SAMM Aspect Models",
   "version": "0.0.1",
-  "publisher": "ESMF",
+  "publisher": "eclipse-esmf",
   "icon": "media/esmf-logo.png",
   "license": "MPL-2.0",
   "repository": {
