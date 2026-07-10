@@ -9,18 +9,18 @@ features *Go to Definition* for elements and semantic model validation.
 
 ## Configuration
 
-- `turtle.languageServerSettings.activateEmbeddedLanguageServer` (boolean, default: `true`)
+- `semantic-models.languageServerSettings.activateEmbeddedLanguageServer` (boolean, default: `true`)
   - When enabled, the extension starts the SAMM language server process. When disabled, an external language server must be started manually.
-- `turtle.languageServerSettings.automaticUpdateCheck` (boolean, default: `true`)
+- `semantic-models.languageServerSettings.automaticUpdateCheck` (boolean, default: `true`)
   - Automatically check for updates to the SAMM language server and notify when a new version is available.
-- `turtle.languageServerSettings.sammCliPath` (string)
+- `semantic-models.languageServerSettings.sammCliPath` (string)
   - Path to the SAMM CLI executable or JAR file to use as the language server. Can be downloaded or selected using the 'Select SAMM CLI Executable' command.
-- `turtle.languageServerSettings.serverPort` (number, default: `1846`)
+- `semantic-models.languageServerSettings.serverPort` (number, default: `1846`)
   - TCP port used to connect to the SAMM language server.
-- `turtle.languageServerSettings.traceLevel` (string, default: `off`)
+- `semantic-models.languageServerSettings.traceLevel` (string, default: `off`)
   - Controls the verbosity of Language Server Protocol (LSP) tracing. Options: `off`, `messages`, `verbose`.
 
-Use the command `Turtle: Select SAMM CLI Executable` to choose either:
+Use the command `Semantic Models: Select SAMM CLI Executable` to choose either:
 - one of the latest SAMM CLI GitHub releases, or
 - a custom executable path from your local file system.
 
@@ -31,7 +31,7 @@ Use the command `Turtle: Select SAMM CLI Executable` to choose either:
   - Fast validation while typing from the regular Turtle parser diagnostics provided by the server (appear in the editor and `Problems`).
   - Full Aspect validation from the server for model-level issues (results shown in notifications and status bar).
 - Manual validation command:
-  - `Turtle: Validate Document Now`
+  - `Semantic Models: Validate Document Now`
 
 ## Running the Server and Extension Together
 
@@ -62,15 +62,15 @@ When each validation runs:
 
 - On type: fast syntax feedback only.
 - On save: heavy Aspect validation for Turtle documents.
-- Manual: `Turtle: Validate Document Now` for the active Turtle document.
+- Manual: `Semantic Models: Validate Document Now` for the active Turtle document.
 
 ## Commands
 
-- `Turtle: Validate Document Now`
+- `Semantic Models: Validate Document Now`
   - Sends a server request for the active Turtle document.
-- `Turtle: Select SAMM CLI Executable`
+- `Semantic Models: Select SAMM CLI Executable`
   - Opens a quick pick with the latest ten GitHub releases and a custom-path option.
-- `Turtle: Restart Language Server Connection`
+- `Semantic Models: Restart Language Server Connection`
   - Restarts the language server and reconnects the client.
 
 ## UX During Long-Running Validation
@@ -102,7 +102,7 @@ Use [samples/org.eclipse.esmf.test/1.0.0/Aspect.ttl](samples/org.eclipse.esmf.te
 Manual check:
 
 1. Open an Aspect model file.
-2. Run `Turtle: Validate document now`.
+2. Run `Semantic Models: Validate Document Now`.
 3. Wait for validation to complete.
 4. Confirm that validation results are displayed in a notification.
 

@@ -1,5 +1,5 @@
 {
-  "name": "turtle",
+  "name": "semantic-models",
   "displayName": "Semantic Models",
   "description": "Support for RDF/Turtle documents, including SAMM Aspect Models",
   "version": "0.0.1",
@@ -26,19 +26,19 @@
   "contributes": {
     "commands": [
       {
-        "command": "turtle.validateDocumentNow",
+        "command": "semantic-models.validateDocumentNow",
         "title": "Validate Document Now",
-        "category": "Turtle"
+        "category": "Semantic Models"
       },
       {
-        "command": "turtle.restartLanguageServices",
+        "command": "semantic-models.restartLanguageServices",
         "title": "Restart Language Server Connection",
-        "category": "Turtle"
+        "category": "Semantic Models"
       },
       {
-        "command": "turtle.selectSammCliExecutable",
+        "command": "semantic-models.selectSammCliExecutable",
         "title": "Select SAMM CLI Executable",
-        "category": "Turtle"
+        "category": "Semantic Models"
       }
     ],
     "languages": [
@@ -60,31 +60,31 @@
       "type": "object",
       "description": "Configuration settings for the Semantic Models extension.",
       "properties": {
-        "turtle.languageServerSettings.activateEmbeddedLanguageServer": {
+        "semantic-models.languageServerSettings.activateEmbeddedLanguageServer": {
           "type": "boolean",
           "default": true,
           "description": "When enabled, the extension starts the SAMM language server using the executable configured below. When disabled, an external language server must be started manually.",
           "order": 0
         },
-        "turtle.languageServerSettings.automaticUpdateCheck": {
+        "semantic-models.languageServerSettings.automaticUpdateCheck": {
           "type": "boolean",
           "default": true,
           "description": "Automatically check for updates to the SAMM language server and notify when a new version is available.",
           "order": 1
         },
-        "turtle.languageServerSettings.sammCliPath": {
+        "semantic-models.languageServerSettings.sammCliPath": {
           "type": "string",
           "default": "",
           "description": "Path to the SAMM CLI executable or JAR file to use as the language server. Can be downloaded or selected using the 'Select SAMM CLI Executable' command.",
           "order": 2
         },
-        "turtle.languageServerSettings.serverPort": {
+        "semantic-models.languageServerSettings.serverPort": {
           "type": "number",
           "default": 1846,
           "description": "TCP port used to connect to the SAMM language server.",
           "order": 3
         },
-        "turtle.languageServerSettings.traceLevel": {
+        "semantic-models.languageServerSettings.traceLevel": {
           "type": "string",
           "enum": [
             "off",
@@ -110,7 +110,7 @@
     "menus": {
       "editor/context": [
         {
-          "command": "turtle.validateDocumentNow",
+          "command": "semantic-models.validateDocumentNow",
           "when": "resourceLangId == turtle",
           "group": "1_modification"
         }
@@ -118,7 +118,7 @@
     },
     "walkthroughs": [
       {
-        "id": "turtle-getting-started",
+        "id": "semantic-models-getting-started",
         "title": "Getting Started with the Semantic Models Extension",
         "description": "Learn how to use the Semantic Models extension to edit and validate your RDF/Turtle files, including SAMM Aspect Models.\nThis walkthrough will guide you through the key features of the extension, including validating your RDF/Turtle files and SAMM Aspect Models using the integrated language server.",
         "steps": [

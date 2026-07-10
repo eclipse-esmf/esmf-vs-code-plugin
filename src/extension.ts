@@ -19,9 +19,9 @@ import { TurtleExtensionSettings } from './settings';
 import { TurtleLanguageClient } from './languageClient';
 import type { ExtensionLogger } from './outputChannel';
 
-const SELECT_EXECUTABLE_COMMAND = 'turtle.selectSammCliExecutable';
+const SELECT_EXECUTABLE_COMMAND = 'semantic-models.selectSammCliExecutable';
 const SELECT_EXECUTABLE_TITLE = 'Select SAMM CLI Executable';
-const RESTART_LANGUAGE_SERVICES_COMMAND = 'turtle.restartLanguageServices';
+const RESTART_LANGUAGE_SERVICES_COMMAND = 'semantic-models.restartLanguageServices';
 
 let settings: TurtleExtensionSettings;
 let languageServer: TurtleLanguageServer | undefined;
@@ -52,7 +52,7 @@ export async function activate(ctx: vscode.ExtensionContext): Promise<void> {
             await queueLanguageServicesRestart('Manual restart command');
         }),
         vscode.workspace.onDidChangeConfiguration((e: vscode.ConfigurationChangeEvent) => {
-            if (e.affectsConfiguration('turtle.languageServerSettings')) {
+            if (e.affectsConfiguration('semantic-models.languageServerSettings')) {
                 void queueLanguageServicesRestart('Configuration change detected');
             }
         })
@@ -86,7 +86,7 @@ function queueLanguageServicesRestart(reason: string): Promise<void> {
             if (selection === 'Configure SAMM CLI Executable') {
                 void selectSammCliExecutable();
             } else if (selection === 'Check Extension Settings') {
-                void vscode.commands.executeCommand('workbench.action.openSettings', 'turtle.languageServerSettings');
+                void vscode.commands.executeCommand('workbench.action.openSettings', 'semantic-models.languageServerSettings');
             }
         });
 
@@ -241,8 +241,8 @@ async function promptForCustomExecutablePath(): Promise<string | undefined> {
         canSelectFiles: true,
         canSelectFolders: false,
         canSelectMany: false,
-        openLabel: 'Use this executable / jar',
-        title: 'Select SAMM CLI executable / jar',
+        openLabel: 'Use this executable / JAR',
+        title: 'Select SAMM CLI executable / JAR',
     });
 
     return selection?.[0]?.fsPath;
