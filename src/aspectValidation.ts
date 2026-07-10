@@ -15,7 +15,7 @@ import * as vscode from 'vscode';
 import type { ExtensionLogger } from './outputChannel';
 
 export const VALIDATE_DOCUMENT_REQUEST = 'turtle/aspectValidation/validateDocument';
-export const VALIDATE_DOCUMENT_COMMAND = 'turtle.validateDocumentNow';
+export const VALIDATE_DOCUMENT_COMMAND = 'semantic-models.validateDocumentNow';
 const STATUS_MESSAGE_TIMEOUT_MS = 5000;
 
 export type AspectValidationTrigger = 'manual' | 'save';

@@ -6,7 +6,6 @@ src/**
 .prettierrc
 CONTRIBUTING.md
 CONVENTIONS.MD
-LICENSE
 **/tsconfig.json
 **/eslint.config.mjs
 **/*.map

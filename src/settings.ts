@@ -16,31 +16,31 @@ import * as vscode from 'vscode';
 export class TurtleExtensionSettings {
 
     isEmbeddedLanguageServerStartEnabled(): boolean {
-        return vscode.workspace.getConfiguration('turtle.languageServerSettings').get<boolean>('activateEmbeddedLanguageServer', true);
+        return vscode.workspace.getConfiguration('semantic-models.languageServerSettings').get<boolean>('activateEmbeddedLanguageServer', true);
     }
 
     async setEmbeddedLanguageServerStartEnabled(enabled: boolean): Promise<void> {
-        await vscode.workspace.getConfiguration('turtle.languageServerSettings').update('activateEmbeddedLanguageServer', enabled, vscode.ConfigurationTarget.Global);
+        await vscode.workspace.getConfiguration('semantic-models.languageServerSettings').update('activateEmbeddedLanguageServer', enabled, vscode.ConfigurationTarget.Global);
     }
 
     getSammCliPath(): string {
-        return vscode.workspace.getConfiguration('turtle.languageServerSettings').get<string>('sammCliPath', '');
+        return vscode.workspace.getConfiguration('semantic-models.languageServerSettings').get<string>('sammCliPath', '');
     }
 
     async setSammCliPath(path: string): Promise<void> {
-        await vscode.workspace.getConfiguration('turtle.languageServerSettings').update('sammCliPath', path, vscode.ConfigurationTarget.Global);
+        await vscode.workspace.getConfiguration('semantic-models.languageServerSettings').update('sammCliPath', path, vscode.ConfigurationTarget.Global);
     }
 
     sammCliAutoUpdateIsEnabled(): boolean {
-        return vscode.workspace.getConfiguration('turtle.languageServerSettings').get<boolean>('automaticUpdateCheck', true);
+        return vscode.workspace.getConfiguration('semantic-models.languageServerSettings').get<boolean>('automaticUpdateCheck', true);
     }
 
     getSammCliLspServerPort(): number {
-        return vscode.workspace.getConfiguration('turtle.languageServerSettings').get<number>('serverPort', 1846);
+        return vscode.workspace.getConfiguration('semantic-models.languageServerSettings').get<number>('serverPort', 1846);
     }
 
     getLanguageClientTraceLevel(): 'off' | 'messages' | 'verbose' {
-        return vscode.workspace.getConfiguration('turtle.languageServerSettings').get<'off' | 'messages' | 'verbose'>('traceLevel', 'off');
+        return vscode.workspace.getConfiguration('semantic-models.languageServerSettings').get<'off' | 'messages' | 'verbose'>('traceLevel', 'off');
     }
 
 }
