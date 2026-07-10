@@ -46,6 +46,7 @@ jobs:
       - name: Set version in package.json
         run: |
           npm version --no-git-tag-version -- "${RELEASE_VERSION}"
+          yq eval -i ".version = \"${RELEASE_VERSION}\"" documentation/vs-code-plugin/antora.yml
 
       - name: Install dependencies
         run: npm ci
