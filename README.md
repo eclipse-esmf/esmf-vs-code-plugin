@@ -1,7 +1,7 @@
 # Semantic Models for VS Code
 
 Semantic Models for VS Code is a Visual Studio Code extension for editing
-RDF/Turtle documents, including SAMM Aspect Models.
+RDF/Turtle documents, including [SAMM Aspect Models](https://eclipse-esmf.github.io/samm-specification/snapshot/index.html) of the [Eclipse Semantic Modeling Framework (ESMF)](https://eclipse-esmf.github.io/esmf-documentation/index.html).
 
 For RDF/Turtle documents, it features syntax highlighting, document outline and
 automatic syntax validation. For SAMM Aspect Models, the extension additionally
