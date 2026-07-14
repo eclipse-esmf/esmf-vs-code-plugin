@@ -18,7 +18,7 @@ import { LanguageClient, LanguageClientOptions, State, StreamInfo } from 'vscode
 import type { RequestClient } from './aspectValidation';
 import type { ExtensionLogger } from './outputChannel';
 
-const CLIENT_START_TIMEOUT_MS = 20_000;
+const CLIENT_START_TIMEOUT_MS = 60_000;
 
 export class TurtleLanguageClient implements RequestClient {
     private client: LanguageClient;
