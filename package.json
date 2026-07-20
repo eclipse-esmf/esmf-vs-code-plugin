@@ -99,6 +99,48 @@
           "default": "off",
           "description": "Controls the verbosity of Language Server Protocol (LSP) tracing in the output channel.",
           "order": 4
+        },
+        "semantic-models.modelResolution.githubRepositories": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "repository": {
+                "type": "string",
+                "default": "",
+                "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$",
+                "patternErrorMessage": "Must be in the format \"owner/repository\".",
+                "markdownDescription": "GitHub repository to use for Aspect Model Resolution. Format: `owner/repository`. Example: `eclipse-esmf/esmf-sdk`."
+              },
+              "branch": {
+                "type": "string",
+                "default": "main",
+                "description": "Branch to resolve Aspect Models from. Must not be set together with \"tag\"."
+              },
+              "tag": {
+                "type": "string",
+                "default": "",
+                "description": "Tag to resolve Aspect Models from. Must not be set together with \"branch\"."
+              },
+              "path": {
+                "type": "string",
+                "default": "/",
+                "description": "Path inside the repository under which Aspect Models are located."
+              },
+              "token": {
+                "type": "string",
+                "default": "",
+                "description": "GitHub token used for authentication when accessing this repository. If not provided, the repository will be accessed anonymously."
+              }
+            },
+            "required": [
+              "repository"
+            ],
+            "additionalProperties": false
+          },
+          "default": [],
+          "markdownDescription": "Additional GitHub repositories to be used for Aspect Model Resolution. Enables e.g. go to Definition and validation of models that reference Aspect Models in other repositories. Each entry must specify the repository in the format `owner/repository`, and may optionally specify a branch/tag, path, and GitHub token for authentication.",
+          "order": 5
         }
       }
     },
@@ -125,7 +167,7 @@
           {
             "id": "select-samm-cli",
             "title": "Select a SAMM CLI Executable",
-              "description": "Complete the initial setup by downloading or selecting a SAMM CLI executable, which provides the required SAMM Language Server.\n[Download or Select SAMM CLI](command:turtle.selectSammCliExecutable)",
+            "description": "Complete the initial setup by downloading or selecting a SAMM CLI executable, which provides the required SAMM Language Server.\n[Download or Select SAMM CLI](command:turtle.selectSammCliExecutable)",
             "media": {
               "image": "media/walkthrough_select_samm_cli.png",
               "altText": "Example of selecting a SAMM CLI executable"
