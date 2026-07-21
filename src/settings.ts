@@ -13,6 +13,14 @@
 
 import * as vscode from 'vscode';
 
+export interface GithubRepositoryConfig {
+    repository: string;
+    branch: string;
+    tag: string;
+    path: string;
+    token: string;
+}
+
 export class TurtleExtensionSettings {
 
     isEmbeddedLanguageServerStartEnabled(): boolean {
@@ -41,6 +49,10 @@ export class TurtleExtensionSettings {
 
     getLanguageClientTraceLevel(): 'off' | 'messages' | 'verbose' {
         return vscode.workspace.getConfiguration('semantic-models.languageServerSettings').get<'off' | 'messages' | 'verbose'>('traceLevel', 'off');
+    }
+
+    getGithubRepositories(): Array<GithubRepositoryConfig> {
+        return vscode.workspace.getConfiguration('semantic-models.modelResolution').get<Array<GithubRepositoryConfig>>('githubRepositories', []);
     }
 
 }

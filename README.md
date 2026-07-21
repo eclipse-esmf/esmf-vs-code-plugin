@@ -19,6 +19,14 @@ features *Go to Definition* for elements and semantic model validation.
   - TCP port used to connect to the SAMM language server.
 - `semantic-models.languageServerSettings.traceLevel` (string, default: `off`)
   - Controls the verbosity of Language Server Protocol (LSP) tracing. Options: `off`, `messages`, `verbose`.
+- `semantic-models.modelResolution.githubRepositories` (array, default: `[]`)
+  - Additional GitHub repositories to use for Aspect Model Resolution (e.g. `Go to Definition` and validation of models referencing Aspect Models hosted in other repositories). Each entry supports:
+    - `repository` (string, required) - repository in the format `owner/repository`, e.g. `eclipse-esmf/esmf-sdk`.
+    - `branch` (string, default: `main`) - branch to resolve Aspect Models from. Must not be set together with `tag`.
+    - `tag` (string) - tag to resolve Aspect Models from. Must not be set together with `branch`.
+    - `path` (string, default: `/`) - path inside the repository under which Aspect Models are located.
+    - `token` (string) - GitHub token for authentication. If omitted, the repository is accessed anonymously.
+  - Whenever this setting changes, the extension validates that each repository exists and is accessible, and shows an error notification (with a link to the settings) if a problem is found, e.g. a missing repository, invalid/expired token, or exceeded API rate limits.
 
 Use the command `Semantic Models: Select SAMM CLI Executable` to choose either:
 - one of the latest SAMM CLI GitHub releases, or

@@ -17,21 +17,25 @@ import { TurtleLanguageServer } from './languageServer';
 import { SammCliDownloader } from './sammCliDownloader';
 import { TurtleExtensionSettings } from './settings';
 import { TurtleLanguageClient } from './languageClient';
+import { GitHubRepositoryValidator } from './githubRepositoryValidator';
 import type { ExtensionLogger } from './outputChannel';
 
 const SELECT_EXECUTABLE_COMMAND = 'semantic-models.selectSammCliExecutable';
 const SELECT_EXECUTABLE_TITLE = 'Select SAMM CLI Executable';
 const RESTART_LANGUAGE_SERVICES_COMMAND = 'semantic-models.restartLanguageServices';
+const GITHUB_REPOSITORY_VALIDATION_DEBOUNCE_MS = 2000;
 
 let settings: TurtleExtensionSettings;
 let languageServer: TurtleLanguageServer | undefined;
 let languageClient: TurtleLanguageClient;
 let aspectValidationController: AspectValidationController;
 let sammCliDownloader: SammCliDownloader;
+let gitHubRepositoryValidator: GitHubRepositoryValidator;
 
 let outputChannel: ExtensionLogger;
 let context: vscode.ExtensionContext;
 let restartChain: Promise<void> = Promise.resolve();
+let githubRepositoryValidationTimeout: ReturnType<typeof setTimeout> | undefined;
 
 export async function activate(ctx: vscode.ExtensionContext): Promise<void> {
     context = ctx;
@@ -40,6 +44,7 @@ export async function activate(ctx: vscode.ExtensionContext): Promise<void> {
     outputChannel = logOutputChannel;
     settings = new TurtleExtensionSettings();
     sammCliDownloader = new SammCliDownloader(context, settings, outputChannel);
+    gitHubRepositoryValidator = new GitHubRepositoryValidator(outputChannel);
     languageClient = new TurtleLanguageClient(outputChannel, settings.getSammCliLspServerPort(), settings.getLanguageClientTraceLevel());
     aspectValidationController = new AspectValidationController(createUnavailableClient(), vscode.window, vscode.workspace, outputChannel);
     aspectValidationController.register(context);
@@ -55,8 +60,13 @@ export async function activate(ctx: vscode.ExtensionContext): Promise<void> {
             if (e.affectsConfiguration('semantic-models.languageServerSettings')) {
                 void queueLanguageServicesRestart('Configuration change detected');
             }
+            if (e.affectsConfiguration('semantic-models.modelResolution')) {
+                scheduleGithubRepositoryValidation();
+            }
         })
     );
+
+    void validateConfiguredGithubRepositories();
 
     if (settings.isEmbeddedLanguageServerStartEnabled() && !settings.getSammCliPath()) {
         const selection = await vscode.window.showErrorMessage(
@@ -76,6 +86,23 @@ export async function activate(ctx: vscode.ExtensionContext): Promise<void> {
             outputChannel.error(`Failed to check for SAMM CLI updates: ${error instanceof Error ? error.message : String(error)}`);
         });
     }
+}
+
+async function validateConfiguredGithubRepositories(): Promise<void> {
+    await gitHubRepositoryValidator.validate(settings.getGithubRepositories());
+}
+
+// Wait for configuration edits to settle (e.g. while the user is still typing in settings.json)
+// before validating, instead of validating after every keystroke.
+function scheduleGithubRepositoryValidation(): void {
+    if (githubRepositoryValidationTimeout) {
+        clearTimeout(githubRepositoryValidationTimeout);
+    }
+
+    githubRepositoryValidationTimeout = setTimeout(() => {
+        githubRepositoryValidationTimeout = undefined;
+        void validateConfiguredGithubRepositories();
+    }, GITHUB_REPOSITORY_VALIDATION_DEBOUNCE_MS);
 }
 
 function queueLanguageServicesRestart(reason: string): Promise<void> {
@@ -257,6 +284,10 @@ function createUnavailableClient(): RequestClient {
 }
 
 export async function deactivate(): Promise<void> {
+    if (githubRepositoryValidationTimeout) {
+        clearTimeout(githubRepositoryValidationTimeout);
+        githubRepositoryValidationTimeout = undefined;
+    }
     await restartChain;
     await languageClient.disconnect();
     await stopLanguageServer();

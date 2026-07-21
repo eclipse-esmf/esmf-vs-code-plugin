@@ -55,6 +55,7 @@ export class TurtleLanguageClient implements RequestClient {
             documentSelector: ['turtle'],
             synchronize: {
                 fileEvents: vscode.workspace.createFileSystemWatcher('**/*.ttl'),
+                configurationSection: 'semantic-models.modelResolution',
             },
         };
 
