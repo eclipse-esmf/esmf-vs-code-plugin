@@ -45,6 +45,20 @@ export async function activate(ctx: vscode.ExtensionContext): Promise<void> {
     aspectValidationController.register(context);
 
     context.subscriptions.push(
+        vscode.languages.setLanguageConfiguration('turtle', {
+            onEnterRules: [
+                {
+                    beforeText: /\.\s*$/,
+                    action: {
+                        indentAction: vscode.IndentAction.Outdent,
+                        appendText: "\n"
+                    },
+                },
+            ],
+        })
+    );
+
+    context.subscriptions.push(
         vscode.commands.registerCommand(SELECT_EXECUTABLE_COMMAND, async () => {
             await selectSammCliExecutable();
         }),
