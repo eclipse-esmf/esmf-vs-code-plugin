@@ -39,6 +39,16 @@
         "command": "semantic-models.selectSammCliExecutable",
         "title": "Select SAMM CLI Executable",
         "category": "Semantic Models"
+      },
+      {
+        "command": "semantic-models.openGraphicalView",
+        "title": "Open Graphical View",
+        "category": "Semantic Models",
+        "enablement": "editorLangId == turtle",
+        "icon": {
+          "light": "media/aspect-model-editor-targetsize-192.png",
+          "dark": "media/aspect-model-editor-targetsize-192.png"
+        }
       }
     ],
     "languages": [
@@ -140,11 +150,23 @@
       }
     },
     "menus": {
+      "editor/title": [
+        {
+          "command": "semantic-models.openGraphicalView",
+          "when": "resourceLangId == turtle",
+          "group": "navigation@10"
+        }
+      ],
       "editor/context": [
         {
           "command": "semantic-models.validateDocumentNow",
           "when": "resourceLangId == turtle",
           "group": "1_modification"
+        },
+        {
+          "command": "semantic-models.openGraphicalView",
+          "when": "resourceLangId == turtle",
+          "group": "1_modification@2"
         }
       ]
     },
@@ -157,7 +179,7 @@
           {
             "id": "select-samm-cli",
             "title": "Select a SAMM CLI Executable",
-            "description": "Complete the initial setup by downloading or selecting a SAMM CLI executable, which provides the required SAMM Language Server.\n[Download or Select SAMM CLI](command:turtle.selectSammCliExecutable)",
+            "description": "Complete the initial setup by downloading or selecting a SAMM CLI executable, which provides the required SAMM Language Server.\n[Download or Select SAMM CLI](command:semantic-models.selectSammCliExecutable)",
             "media": {
               "image": "media/walkthrough_select_samm_cli.png",
               "altText": "Example of selecting a SAMM CLI executable"
@@ -180,14 +202,15 @@
     "vscode:prepublish": "npm run build",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run build && npm run lint",
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && node scripts/copy-webview-assets.mjs",
     "build-watch": "tsc -p tsconfig.json --watch",
     "prettier": "prettier --config .prettierrc --write './src/**/*{.ts,.js,.json}'",
     "test": "vscode-test --config .vscode-test.mjs",
     "test:prettier": "prettier --config .prettierrc --list-different './src/**/*{.ts,.js,.json}'",
     "test:coverage": "vscode-test --config .vscode-test.mjs --coverage --coverage-reporter text --coverage-reporter lcov",
     "lint": "eslint src --ext .ts",
-    "lint:fix": "eslint src --ext .ts --fix"
+    "lint:fix": "eslint src --ext .ts --fix",
+    "test:webview-assets": "node scripts/verify-webview-assets.mjs"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",

@@ -13,13 +13,16 @@
 
 import * as vscode from 'vscode';
 import {AspectValidationController, RequestClient} from './aspectValidation';
+import {GraphicalViewController} from './graphicalView';
+import {LspGraphicalViewClient} from './graphicalViewClient';
+import {VscodeGraphicalViewPanelFactory} from './graphicalViewPanel';
+import {GitHubRepositoryValidator} from './githubRepositoryValidator';
+import {TurtleLanguageClient} from './languageClient';
 import {TurtleLanguageServer} from './languageServer';
+import {LanguageServicesMode, LanguageServicesSupervisor, TerminalAction} from './languageServicesSupervisor';
+import type {ExtensionLogger} from './outputChannel';
 import {SammCliDownloader} from './sammCliDownloader';
 import {TurtleExtensionSettings} from './settings';
-import {TurtleLanguageClient} from './languageClient';
-import {GitHubRepositoryValidator} from './githubRepositoryValidator';
-import type {ExtensionLogger} from './outputChannel';
-import {LanguageServicesSupervisor, LanguageServicesMode, TerminalAction} from './languageServicesSupervisor';
 
 const SELECT_EXECUTABLE_COMMAND = 'semantic-models.selectSammCliExecutable';
 const SELECT_EXECUTABLE_TITLE = 'Select SAMM CLI Executable';
@@ -28,6 +31,7 @@ const GITHUB_REPOSITORY_VALIDATION_DEBOUNCE_MS = 2000;
 
 let settings: TurtleExtensionSettings;
 let aspectValidationController: AspectValidationController;
+let graphicalViewController: GraphicalViewController;
 let sammCliDownloader: SammCliDownloader;
 let gitHubRepositoryValidator: GitHubRepositoryValidator;
 
@@ -47,6 +51,40 @@ export async function activate(ctx: vscode.ExtensionContext): Promise<void> {
     gitHubRepositoryValidator = new GitHubRepositoryValidator(outputChannel);
     aspectValidationController = new AspectValidationController(createUnavailableClient(), vscode.window, vscode.workspace, outputChannel);
     aspectValidationController.register(context);
+    graphicalViewController = new GraphicalViewController(
+        undefined,
+        new VscodeGraphicalViewPanelFactory(context.extensionUri),
+        vscode.commands,
+        vscode.window,
+        {
+            onDidSaveTextDocument: listener => vscode.workspace.onDidSaveTextDocument(listener),
+            onDidChangeDocumentAvailability: listener =>
+                vscode.Disposable.from(
+                    vscode.workspace.onDidOpenTextDocument(document => listener(document.uri.toString(), true)),
+                    vscode.workspace.onDidCloseTextDocument(document => listener(document.uri.toString(), false)),
+                    vscode.window.tabGroups.onDidChangeTabs(event => {
+                        for (const tab of event.closed) {
+                            if (tab.input instanceof vscode.TabInputText) {
+                                const sourceUri = tab.input.uri.toString();
+                                const remainsOpen = vscode.window.tabGroups.all.some(group =>
+                                    group.tabs.some(
+                                        candidate =>
+                                            candidate.input instanceof vscode.TabInputText &&
+                                            candidate.input.uri.toString() === sourceUri,
+                                    ),
+                                );
+                                if (!remainsOpen) {
+                                    listener(sourceUri, false);
+                                }
+                            }
+                        }
+                    }),
+                ),
+            isDocumentAvailable: uri => vscode.workspace.textDocuments.some(document => document.uri.toString() === uri),
+        },
+        outputChannel,
+    );
+    graphicalViewController.register(context);
     languageServicesSupervisor = createLanguageServicesSupervisor();
 
     context.subscriptions.push(
@@ -137,7 +175,12 @@ function createLanguageServicesSupervisor(): LanguageServicesSupervisor {
             logOutputChannel.logLevel,
         ),
         createClient: configuration => new TurtleLanguageClient(outputChannel, configuration.port, logOutputChannel.logLevel),
-        setRequestClient: (client, generation) => aspectValidationController.setClient(client, generation),
+        setRequestClient: (client, generation) => {
+            aspectValidationController.setClient(client, generation);
+            graphicalViewController.setClient(
+                client instanceof TurtleLanguageClient ? new LspGraphicalViewClient(client) : undefined,
+            );
+        },
         unavailableClient: createUnavailableClient,
         logger: outputChannel,
         notifyTerminal: notifyTerminalRecoveryFailure,

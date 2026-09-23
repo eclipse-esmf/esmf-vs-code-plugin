@@ -30,7 +30,7 @@ export interface DiagnosticReport {
 }
 
 export interface RequestClient {
-    sendRequest<R>(method: string, params?: unknown): Thenable<R>;
+    sendRequest<R>(method: string, params?: unknown, token?: vscode.CancellationToken): Thenable<R>;
 }
 
 type RequestClientBinding = {
