@@ -88,6 +88,7 @@ jobs:
         uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v0.1.15
         with:
           body: "Release version ${{ env.RELEASE_VERSION }}."
+          generate_release_notes: true
           tag_name: v${{ env.RELEASE_VERSION }}
           target_commitish: ${{ env.release_branch_name }}
           draft: false

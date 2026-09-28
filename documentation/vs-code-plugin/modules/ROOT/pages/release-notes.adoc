@@ -1,0 +1,3 @@
+= Release Notes
+
+Find the release notes for the Semantic Models extension at the https://github.com/eclipse-esmf/esmf-vs-code-plugin/releases[GitHub releases overview^,opts=nofollow].

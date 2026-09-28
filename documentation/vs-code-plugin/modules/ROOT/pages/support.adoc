@@ -1,0 +1,57 @@
+= Support
+
+For troubleshooting, see the <<known-issues,known issues>> below.
+Also make sure your system meets the xref:system-requirements.adoc[system requirements].
+
+As the Semantic Models extension relies on the SAMM specification, also check out the https://eclipse-esmf.github.io/samm-specification/snapshot/index.html[SAMM Aspect Meta Model,opts=nofollow].
+
+For further support, open an https://github.com/eclipse-esmf/esmf-vs-code-plugin/issues[issue in GitHub^,opts=nofollow].
+Include the following in your issue:
+
+* Steps to reproduce the issue.
+* Expected behavior.
+* Actual behavior.
+* Operating system, VS Code version, extension version, and SAMM CLI version.
+* Relevant screenshots, minimal Turtle files, and logs. Remove tokens and other sensitive data.
+
+[[known-issues]]
+== Known issues
+
+[[selection-and-download-of-samm-cli-fails]]
+=== SAMM CLI selection or download fails
+
+One possible cause is a GitHub API rate limit. Check the *Semantic Models* output channel for the reported error.
+If the release picker or download fails, try selecting a manually downloaded CLI:
+
+1. Go to the https://github.com/eclipse-esmf/esmf-sdk/releases[ESMF SDK releases page^,opts=nofollow] and manually download the SAMM CLI for your platform from the latest release. 
+2. Extract the archive if necessary and move the cli to a suitable location for permanent storage.
+3. Run *Semantic Models: Select SAMM CLI Executable* from the Command Palette. 
+4. Choose `Use custom SAMM CLI executable or jar file`, and select the downloaded executable or JAR file.
+
+[[language-server-stops-being-available]]
+=== Language server stops being available
+
+The language server may occasionally crash, making language features unavailable.
+To restart it manually, open the Command Palette (View -> Command Palette) and run `Semantic Models: Restart Language Server Connection`.
+
+
+== Accessing the VS Code extension logs (for troubleshooting/debugging)
+
+To facilitate your troubleshooting efforts or when you need to compile detailed information for a GitHub issue, VS Code enables access to extension logs.
+
+*Opening extension logs*
+
+Open *View -> Output*. Select Semantic Models in the output dropdown menu.
+
+*Enabling detailed logging*
+
+The default logging level in VS Code is `info`. This might not be enough to understand the cause of certain issues.
+In order to get a more complete picture, increase the logging level to `debug`.
+Open *View -> Command Palette* and run *Developer: Set Log Level...*.
+This allows you to configure the logging level either globally or on a per extension basis.
+Select the Semantic Models extension and re-configure the logging level to e.g. `debug`.
+
+{nbsp}
+
+For general questions on semantic data structuring and the role of the Semantic Models extension, join the
+https://chat.eclipse.org/#/room/#eclipse-semantic-modeling-framework:matrix.eclipse.org[ESMF Chat^,opts=nofollow].
