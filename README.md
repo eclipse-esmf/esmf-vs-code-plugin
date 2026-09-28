@@ -7,6 +7,8 @@ For RDF/Turtle documents, it features syntax highlighting, document outline and
 automatic syntax validation. For SAMM Aspect Models, the extension additionally
 features *Go to Definition* for elements and semantic model validation.
 
+For installation, prerequisites, and a sample walkthrough, see the [user guide](https://eclipse-esmf.github.io/vs-code-plugin/introduction.html).
+
 ## Configuration
 
 - `semantic-models.languageServerSettings.activateEmbeddedLanguageServer` (boolean, default: `true`)
@@ -34,10 +36,13 @@ Use the command `Semantic Models: Select SAMM CLI Executable` to choose either:
 
 ## Features
 
-- Prefix `Go to Definition` inside Turtle files.
+- `Go to Definition` of referenced elements within the same file, current workspace and also for SAMM elements.
 - Two-level validation:
-  - Fast validation while typing from the regular Turtle parser diagnostics provided by the server (appear in the editor and `Problems`).
-  - Full Aspect validation from the server for model-level issues (results shown in notifications and status bar).
+  - Fast validation while typing from the regular Turtle parser.
+  - Full Aspect Model validation for model-level issues.
+- Resolve Aspect Models from a GitHub repository:
+  - Configure GitHub repositories that contain Aspect Models in extension settings.
+  - Reference elements of these Aspect Models. Features like validation and `Go to Definition` automatically fetch the model from GitHub.
 - Manual validation command:
   - `Semantic Models: Validate Document Now`
 
@@ -48,28 +53,27 @@ Use the command `Semantic Models: Select SAMM CLI Executable` to choose either:
 3. Press `F5` in VS Code to open an Extension Development Host.
 4. Open an RDF/Turtle file such as [samples/valid.ttl](samples/valid.ttl) or your Aspect model file.
 
-If the server cannot be downloaded or started, the extension shows an error and writes a detailed message in the Turtle LSP output channel.
+If the server cannot be downloaded or started, the extension shows an error and writes a detailed message in the Semantic Models output channel.
 
 ## Validation Behavior
 
 Fast feedback while typing:
 
-- Driven by the server's regular Turtle parsing diagnostics.
+- Driven by LSP server turtle tree sitter parser.
 - Results appear in the editor and `Problems` view.
 - Intended for quick editor feedback while you type.
 
 Full Aspect validation:
 
 - Runs on the server, not in the extension.
-- Results are displayed in notification messages (for manual validation) or status bar (for save-triggered validation).
+- Results appear in the editor and `Problems` view.
 - Always uses detailed server validation messaging when the server returns report text.
-- Always shows visible progress for long-running validation.
-- Runs automatically when saving and can also be triggered manually.
+- Runs automatically after a 4 second delay and when saving.
 
 When each validation runs:
 
-- On type: fast syntax feedback only.
-- On save: heavy Aspect validation for Turtle documents.
+- While typing: Turtle syntax feedback.
+- After a pause and on save: full Aspect Model validation.
 - Manual: `Semantic Models: Validate Document Now` for the active Turtle document.
 
 ## Commands
@@ -80,14 +84,6 @@ When each validation runs:
   - Opens a quick pick with the latest ten GitHub releases and a custom-path option.
 - `Semantic Models: Restart Language Server Connection`
   - Restarts the language server and reconnects the client.
-
-## UX During Long-Running Validation
-
-- Manual validation shows a progress notification while the request is running.
-- Save-triggered validation always uses a short status-bar progress indicator
-  instead of repeated pop-up notifications.
-- After completion, the user gets a summary message with validation results.
-- Automatic save validation keeps progress and completion status in the status bar.
 
 ## Verify Go To Definition
 

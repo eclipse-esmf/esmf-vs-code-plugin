@@ -1,0 +1,23 @@
+= Install the Semantic Models for VS Code Extension
+
+First, check the xref:system-requirements.adoc[system requirements].
+
+== Installing the extension
+
+Open the *Extensions* view in VS Code, search for *Semantic Models* published by *eclipse-esmf*, and select *Install*.
+You can also open https://marketplace.visualstudio.com/items?itemName=eclipse-esmf.semantic-models[Semantic Models on Visual Studio Marketplace,window=_blank,opts=nofollow].
+
+For a manual installation, download the latest `.vsix` file from the https://github.com/eclipse-esmf/esmf-vs-code-plugin/releases[extension releases,opts=nofollow].
+In VS Code, open *View -> Command Palette*, run *Extensions: Install from VSIX...*, and select the downloaded file.
+
+== Configuration
+
+After successful extension installation, a welcome screen should greet you:
+
+image::walkthrough_welcome.png[width=100%]
+
+Follow the instructions on the welcome screen to configure SAMM CLI.
+
+If the welcome screen does not open, manually run the SAMM CLI Configuration. Open *View -> Command Palette*, run *Semantic Models: Select SAMM CLI Executable*.
+
+If setup or validation fails, see xref:support.adoc[Support].

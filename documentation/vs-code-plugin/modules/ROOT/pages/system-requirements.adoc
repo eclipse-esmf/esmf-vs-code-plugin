@@ -1,0 +1,18 @@
+= System Requirements
+
+* Visual Studio Code 1.110.0 or later, with permission to install extensions.
+* Windows, macOS, or Linux, with a SAMM CLI distribution compatible with your operating system and CPU architecture. Check the https://github.com/eclipse-esmf/esmf-sdk/releases[SAMM CLI releases,opts=nofollow].
+
+[[samm-cli-runtime]]
+== SAMM CLI Runtime
+
+The extension requires SAMM CLI 2.15.0 or later to provide its language server.
+The extension guides the user through the setup process. One of the following distributions can be used:
+
+* *Native executable*: No separate Java installation is required.
+* *JAR*: Requires a compatible Java runtime, with `java` available on the `PATH` used by VS Code.
+
+== Network Access
+
+Internet access is required to download the extension and SAMM CLI, check for updates, and resolve models from GitHub.
+The language server uses a local TCP connection on port `1846` by default.

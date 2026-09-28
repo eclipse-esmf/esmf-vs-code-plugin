@@ -172,7 +172,7 @@ async function notifyTerminalRecoveryFailure(mode: LanguageServicesMode): Promis
 }
 
 type SammCliQuickPickItem = vscode.QuickPickItem & {
-    action: 'customPath' | 'release';
+    action: 'customPath' | 'release' | 'help';
     releaseTag?: string;
 };
 
@@ -207,8 +207,8 @@ async function selectSammCliExecutable(): Promise<void> {
     if (releaseItems.length === 0) {
         releaseItems.push({
             label: '$(error) No GitHub releases available',
-            detail: 'Failed to fetch releases from GitHub. Check output channel for details.',
-            action: 'release',
+            detail: 'Failed to fetch releases from GitHub. Click for help.',
+            action: 'help',
         });
     }
 
@@ -219,6 +219,11 @@ async function selectSammCliExecutable(): Promise<void> {
     });
 
     if (!pick) {
+        return;
+    }
+
+    if (pick.action === 'help') {
+        await vscode.env.openExternal(vscode.Uri.parse('https://eclipse-esmf.github.io/vs-code-plugin/support.html#selection-and-download-of-samm-cli-fails'));
         return;
     }
 

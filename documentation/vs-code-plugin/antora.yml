@@ -1,4 +1,6 @@
 name: vs-code-plugin
 title: ESMF VS Code Plugin
 version: master
-start_page: ROOT:index.adoc
+start_page: ROOT:introduction.adoc
+nav:
+  - modules/ROOT/nav.adoc
