@@ -1,4 +1,4 @@
 name: vs-code-plugin
 title: ESMF VS Code Plugin
-version: '1.0.0'
+version: '1.0.1'
 start_page: ROOT:index.adoc
