@@ -160,7 +160,7 @@
           {
             "id": "select-samm-cli",
             "title": "Select a SAMM CLI Executable",
-            "description": "Complete the initial setup by downloading or selecting a SAMM CLI executable, which provides the required SAMM Language Server.\n[Download or Select SAMM CLI](command:turtle.selectSammCliExecutable)",
+            "description": "Complete the initial setup by downloading or selecting a SAMM CLI executable, which provides the required SAMM Language Server.\n[Download or Select SAMM CLI](command:semantic-models.selectSammCliExecutable)",
             "media": {
               "image": "media/walkthrough_select_samm_cli.png",
               "altText": "Example of selecting a SAMM CLI executable"
@@ -172,7 +172,7 @@
             "description": "To validate an RDF/Turtle file or a SAMM Aspect Model, simply open it in VS Code. The extension will automatically connect to the language server and display any validation issues in the Problems view. You can also trigger validation manually using the 'Validate Document Now' command from the Command Palette.",
             "media": {
               "image": "media/walkthrough_validation.png",
-              "altText": "Example of validation issues shown in the Problems panel"
+              "altText": "Example of validation issues shown in the Problems view"
             }
           }
         ]

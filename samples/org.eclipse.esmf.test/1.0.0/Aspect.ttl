@@ -15,9 +15,16 @@
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 @prefix unit: <urn:samm:org.eclipse.esmf.samm:unit:2.2.0#> .
 
-:Aspect a samm:Aspect ;
-   samm:preferredName "Test Aspect"@en ;
-   samm:description "This is a test ription"@en ;
-   samm:description "This is a taaest ription"@de ;
-   samm:properties ( ) ;
+:odometer a samm:Aspect ;
+   samm:preferredName "Odometer"@en ;
+   samm:properties ( :vehicleMilage ) ;
    samm:operations ( ) .
+
+:vehicleMilage a samm:Property ;
+    samm:description "Specifies the mileage of the vehicle associated with the quality complaint."@en ;
+    samm:preferredName "Vehicle Milage"@en ;
+    samm:characteristic :Milage .
+
+:Milage a samm-c:Measurement ;
+    samm:dataType xsd:positiveInteger ;
+    samm:description "Specifies the mileage of the vehicle in kilometers."@en .

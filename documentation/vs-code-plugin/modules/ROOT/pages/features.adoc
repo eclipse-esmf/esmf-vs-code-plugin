@@ -1,0 +1,44 @@
+= Features
+
+== Editing RDF/Turtle
+
+* Syntax highlighting for `.ttl` files.
+* Document outline for navigating the current file.
+* Automatic syntax validation while typing, with diagnostics in the editor and the *Problems* view.
+
+== Working with Aspect Models
+
+* *Go to Definition* for referenced elements in the current file, workspace, and SAMM vocabulary.
+* Aspect Model validation after a pause in editing and when saving.
+* On-demand validation with *Semantic Models: Validate Document Now* from the Command Palette or editor context menu.
+
+Validation issues appear in the editor and the Problems view.
+
+[[github-model-resolution]]
+== Resolving Aspect Models from GitHub
+
+Enables *Go to Definition* and validation of Aspect Model element references stored in a GitHub repository outside the local workspace.
+
+Open *Preferences: Open User Settings (JSON)* from the Command Palette and add the repositories to `semantic-models.modelResolution.githubRepositories`.
+E.g. the following configuration enables to resolve elements from the extension samples:
+
+[source,json]
+----
+{
+	"semantic-models.modelResolution.githubRepositories": [
+		{
+			"repository": "eclipse-esmf/esmf-vs-code-plugin",
+			"branch": "main",
+			"path": "samples"
+		}
+	]
+}
+----
+
+Set `repository` to `owner/repository` and `path` to the folder containing the models.
+To use a tag, replace `branch` with `tag`. Do not set both.
+For private repositories, add a `token` with read access in your user settings.
+Read more about how to create a GitHub Token in the https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens[GitHub docs,opts=nofollow].
+
+Open a local Aspect Model that references an element in the configured repository, then use *Go to Definition* or validate the document as usual.
+The extension will automatically download the required models from GitHub.

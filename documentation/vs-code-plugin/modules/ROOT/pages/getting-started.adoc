@@ -1,0 +1,49 @@
+= Getting Started
+
+== Opening the example workspace
+
+First, complete the xref:installation.adoc[installation and SAMM CLI setup].
+
+1. Open the https://github.com/eclipse-esmf/esmf-vs-code-plugin[extension repository,opts=nofollow] and choose *Code -> Download ZIP*. Extract the archive locally.
+2. In VS Code, choose *File -> Open Folder...* and open the extracted repository's `samples` folder.
+3. Open `org.eclipse.esmf.test/1.0.0/Aspect.ttl` and confirm that the language mode in the status bar is *Turtle*.
+4. Wait for the language server to start. Syntax highlighting and the outline view should become available.
+
+== Validating and navigating a model
+
+The sample intentionally contains validation issues, including a missing unit on the `:Milage` measurement.
+
+1. Open *View -> Problems* and select the issue about the missing measurement unit to jump to its location.
+2. Add `samm-c:unit unit:kilometre ;` after `samm:dataType xsd:positiveInteger ;` in the `:Milage` definition. The `unit:` prefix is already declared in the sample.
+3. Save the file and wait for validation to complete. The missing-unit issue should disappear.
+4. Right-click `:vehicleMilage` in `samm:properties ( :vehicleMilage )` and select *Go to Definition*. VS Code should jump to `:vehicleMilage a samm:Property` in the same file.
+
+Turtle syntax validation runs while typing. Aspect Model validation runs after a pause in editing and when saving.
+
+.Example of validation diagnostics
+image::walkthrough_validation.png[width=100%]
+
+If setup or validation fails, see xref:support.adoc[Support].
+
+== Creating your own workspace
+
+Create a new folder for your models and open it in VS Code.
+Models must be organized in a hierarchical manner, file paths must follow the structure: `namespace/version/name.ttl`.
+
+[source,subs=+quotes]
+----
+_models root (open folder in VS Code)_
+└── com.mycompany.myproduct
+    ├── 1.0.0
+    │   ├── MyAspect.ttl
+    │   ├── MyEntity.ttl
+    │   └── myProperty.ttl
+    └── 1.1.0
+        └── MyAspect.ttl
+----
+
+The namespace and version directories must match the namespace and version in the model URNs.
+For example, files in `com.mycompany.myproduct/1.0.0` use `@prefix : <urn:samm:com.mycompany.myproduct:1.0.0#> .`.
+
+Read more about xref:esmf-developer-guide:tooling-guide:samm-cli.adoc#models-directory-structure[models directory structure,opts=nofollow]
+and xref:esmf-developer-guide:tooling-guide:java-aspect-tooling.adoc#understanding-model-resolution[model resolution,opts=nofollow].
