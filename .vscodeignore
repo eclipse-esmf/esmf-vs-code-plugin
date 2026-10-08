@@ -1,6 +1,8 @@
 .vscode/**
 .vscode-test/**
+scripts/
 src/**
+out/test/**
 .gitignore
 .yarnrc
 .prettierrc

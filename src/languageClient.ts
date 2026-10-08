@@ -16,6 +16,7 @@ import * as net from 'node:net';
 import * as vscode from 'vscode';
 import {CloseAction, ErrorAction, ErrorHandler, LanguageClient, LanguageClientOptions, State, StreamInfo} from 'vscode-languageclient/node';
 import type {RequestClient} from './aspectValidation';
+import type {GraphicalViewRequestTransport} from './graphicalViewClient';
 import type {ExtensionLogger} from './outputChannel';
 import type {DisposableLike} from './languageServicesSupervisor';
 
@@ -35,11 +36,13 @@ export function createDoNotRestartErrorHandler(onUnexpectedClose: () => void): E
     };
 }
 
-export class TurtleLanguageClient implements RequestClient {
+export class TurtleLanguageClient implements RequestClient, GraphicalViewRequestTransport {
     private client: LanguageClient;
     private readonly closeListeners = new Set<() => void>();
+    private readonly availability = new vscode.EventEmitter<boolean>();
     private disconnecting = false;
     private closeReported = false;
+    private lastAvailability = false;
 
     constructor(
         private outputChannel: ExtensionLogger,
@@ -47,6 +50,13 @@ export class TurtleLanguageClient implements RequestClient {
         private readonly logLevel: vscode.LogLevel
     ) {
         this.client = this.initLanguageClient(this.serverPort);
+        this.client.onDidChangeState(event => {
+            const available = event.newState === State.Running;
+            if (available !== this.lastAvailability) {
+                this.lastAvailability = available;
+                this.availability.fire(available);
+            }
+        });
     }
 
     onUnexpectedClose(listener: () => void): DisposableLike {
@@ -142,11 +152,19 @@ export class TurtleLanguageClient implements RequestClient {
         }
     }
 
-    sendRequest<R>(method: string, params?: unknown): Promise<R> {
+    sendRequest<R>(method: string, params?: unknown, token?: vscode.CancellationToken): Promise<R> {
         if (this.client.state === State.Stopped) {
             return Promise.reject(new Error('The Turtle language client is not connected.'));
         }
 
-        return this.client.sendRequest<R>(method, params) as Promise<R>;
+        return this.client.sendRequest<R>(method, params, token) as Promise<R>;
+    }
+
+    isAvailable(): boolean {
+        return this.client.state === State.Running;
+    }
+
+    onDidChangeAvailability(listener: (available: boolean) => void): vscode.Disposable {
+        return this.availability.event(listener);
     }
 }

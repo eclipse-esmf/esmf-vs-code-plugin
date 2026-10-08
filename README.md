@@ -41,6 +41,18 @@ Use the command `Semantic Models: Select SAMM CLI Executable` to choose either:
 - Manual validation command:
   - `Semantic Models: Validate Document Now`
 
+## Graphical View
+
+Use `Semantic Models: Open Graphical View` (`semantic-models.openGraphicalView`) from the Turtle editor-title button, the editor context menu, or the Command Palette to open a read-only SVG snapshot in a separate panel. One panel is reused per Turtle document.
+
+The view renders on initial open, manual Refresh, and Save while the main Turtle document is visible. It includes unsaved text from the main document but uses the persisted versions of imported files. Typing, import saves, hidden-document saves, and revealing an existing panel do not trigger a render.
+
+Element headers can navigate to definitions in local files. Eligible attribute rows whose owner is a named model element navigate as a whole row; language-qualified and wrapped rows retain their source mapping, and aggregated rows navigate to the start of the corresponding predicate. Rows with anonymous or otherwise non-deterministic owners remain inert. Navigation to remote URIs and arbitrary referenced values is not supported.
+
+If rendering fails, the last successful diagram remains visible with an error or warning. Rendering is limited to 1,000 boxes and a 30-second request timeout. The graphical view is not an editor, does not update live while typing, and does not claim visual parity with the Aspect Model Editor.
+
+Graphical View supports SVG only from the shipped/current trusted SAMM language server and generator contract. The extension strict-parses each SVG as XML but does not sanitize or filter its elements and attributes. Its restrictive webview CSP and extension-side message, sidecar, and local-file navigation validation remain enforced. External, substituted, incompatible, or compromised language servers are outside the supported security model; future Graphper or generator changes must preserve the tested style-free passive-output invariant.
+
 ## Running the Server and Extension Together
 
 1. In this extension project, install the dependencies using `npm install`.
