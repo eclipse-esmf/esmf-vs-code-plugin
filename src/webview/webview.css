@@ -1,0 +1,262 @@
+/*
+ * Copyright (c) 2026 Robert Bosch Manufacturing Solutions GmbH
+ *
+ * See the AUTHORS file(s) distributed with this work for additional
+ * information regarding authorship.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
+@font-face {
+    font-family: 'Roboto Condensed';
+    src: url('./RobotoCondensed-Regular.ttf') format('truetype');
+    font-style: normal;
+    font-weight: 400;
+}
+
+html,
+body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+    color: var(--vscode-foreground);
+    background: var(--vscode-editor-background);
+    font-family: var(--vscode-font-family);
+}
+
+#toolbar {
+    display: flex;
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem 0.75rem;
+    box-sizing: border-box;
+    padding: 0.35rem 0.5rem;
+    border-bottom: 1px solid var(--vscode-panel-border);
+}
+
+#toolbar-controls,
+#zoom-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    min-width: 0;
+}
+
+#toolbar-controls {
+    flex: 0 1 auto;
+    gap: 0.4rem;
+}
+
+#zoom-controls {
+    gap: 0.15rem;
+}
+
+#toolbar button {
+    min-height: 1.65rem;
+    padding: 0 0.55rem;
+    font: inherit;
+    cursor: pointer;
+    border-radius: 2px;
+}
+
+#toolbar .primary-action {
+    color: var(--vscode-button-foreground);
+    background: var(--vscode-button-background);
+    border: 1px solid transparent;
+}
+
+#toolbar .primary-action:hover {
+    background: var(--vscode-button-hoverBackground);
+}
+
+#toolbar .toolbar-action {
+    color: var(--vscode-foreground);
+    background: transparent;
+    border: 1px solid transparent;
+}
+
+#toolbar .toolbar-action:hover {
+    background: var(--vscode-toolbar-hoverBackground, var(--vscode-list-hoverBackground));
+}
+
+#toolbar .icon-action {
+    width: 1.75rem;
+    min-width: 1.75rem;
+    padding: 0;
+    font-size: 1.1rem;
+}
+
+.toolbar-separator {
+    align-self: stretch;
+    width: 1px;
+    min-height: 1.25rem;
+    background: var(--vscode-panel-border);
+}
+
+#toolbar button:focus-visible,
+#viewport:focus-visible {
+    outline: 1px solid var(--vscode-focusBorder);
+    outline-offset: 1px;
+}
+
+#status {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-width: 0;
+    max-width: 50%;
+    margin: 0 0 0 auto;
+    padding: 0.2rem 0;
+}
+
+#status-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#status-indicator {
+    flex: 0 0 auto;
+    box-sizing: border-box;
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 50%;
+}
+
+#status[data-kind='ready'] #status-indicator {
+    background: var(--vscode-testing-iconPassed, var(--vscode-foreground));
+}
+
+#status[data-kind='loading'] #status-indicator {
+    width: 0.8rem;
+    height: 0.8rem;
+    border: 2px solid var(--vscode-panel-border);
+    border-top-color: var(--vscode-progressBar-background, var(--vscode-foreground));
+    animation: status-spin 0.8s linear infinite;
+}
+
+#status[data-kind='stale'],
+#status[data-kind='unsupported'],
+#status[data-kind='disconnected'] {
+    flex: 1 0 100%;
+    order: 2;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 0.4rem 0.55rem;
+    border: 1px solid var(--vscode-panel-border);
+    border-left-width: 3px;
+}
+
+#status[data-kind='stale'] #status-indicator,
+#status[data-kind='unsupported'] #status-indicator,
+#status[data-kind='disconnected'] #status-indicator {
+    width: auto;
+    height: auto;
+    border-radius: 0;
+}
+
+#status[data-kind='stale'],
+#status[data-kind='unsupported'] {
+    border-left-color: var(--vscode-notificationsWarningIcon-foreground, var(--vscode-foreground));
+}
+
+#status[data-kind='stale'] #status-indicator::before,
+#status[data-kind='unsupported'] #status-indicator::before {
+    color: var(--vscode-notificationsWarningIcon-foreground, var(--vscode-foreground));
+    content: '⚠';
+}
+
+#status[data-kind='disconnected'] {
+    border-left-color: var(--vscode-notificationsErrorIcon-foreground, var(--vscode-foreground));
+}
+
+#status[data-kind='disconnected'] #status-indicator::before {
+    color: var(--vscode-notificationsErrorIcon-foreground, var(--vscode-foreground));
+    content: '×';
+    font-weight: 700;
+}
+
+#zoom-value {
+    min-width: 3rem;
+    text-align: center;
+}
+
+@keyframes status-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #status[data-kind='loading'] #status-indicator {
+        animation: none;
+    }
+}
+
+@media (max-width: 520px) {
+    #toolbar-controls {
+        flex: 1 1 100%;
+        justify-content: space-between;
+    }
+
+    #status[data-kind='ready'],
+    #status[data-kind='loading'] {
+        flex: 1 1 100%;
+        max-width: none;
+        margin-left: 0;
+    }
+}
+
+#viewport {
+    box-sizing: border-box;
+    flex: 1 1 auto;
+    width: 100%;
+    min-height: 0;
+    overflow: auto;
+    padding: 0.75rem;
+}
+
+#diagram {
+    display: flex;
+    box-sizing: border-box;
+    width: max-content;
+    min-width: 100%;
+    min-height: 100%;
+}
+
+#diagram svg {
+    display: block;
+    flex: none;
+    margin: auto;
+}
+
+#diagram svg g[id^='gv-header-'],
+#diagram svg g[id^='gv-attribute-'] {
+    cursor: pointer;
+    pointer-events: all;
+}
+
+#diagram svg g[id^='gv-header-']:hover,
+#diagram svg g[id^='gv-attribute-']:hover {
+    filter: brightness(0.94);
+}
+
+#diagram svg g[id^='gv-header-']:focus-visible,
+#diagram svg g[id^='gv-attribute-']:focus-visible {
+    outline: 2px solid var(--vscode-focusBorder);
+    outline-offset: 2px;
+}

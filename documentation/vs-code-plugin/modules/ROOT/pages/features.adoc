@@ -6,6 +6,17 @@
 * Document outline for navigating the current file.
 * Automatic syntax validation while typing, with diagnostics in the editor and the *Problems* view.
 
+== Graphical View
+
+When editing a SAMM Aspect Model, you can right-click the document and select "Open Graphical View"
+to open a graphical representation of the model. Alternatively, you can select "Semantic Models:
+Open Graphical View" from the Command Palette.
+
+The graphical view shows a read-only diagram representation of the model. It is updated when the
+document is saved, or when you click the "Refresh" button in the panel. You can click element
+headers in the graphical view to directly jump to the definition of the respective element in the
+corresponding `.ttl` file.
+
 == Working with Aspect Models
 
 * *Go to Definition* for referenced elements in the current file, workspace, and SAMM vocabulary.

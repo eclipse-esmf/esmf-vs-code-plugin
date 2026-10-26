@@ -24,7 +24,7 @@ export type AspectValidationTrigger = 'manual' | 'save';
 export type ValidationResult = 'validation_successful' | 'validation_failed';
 
 export interface RequestClient {
-    sendRequest<R>(method: string, params?: unknown): Thenable<R>;
+    sendRequest<R>(method: string, params?: unknown, token?: vscode.CancellationToken): Thenable<R>;
 }
 
 type RequestClientBinding = {
