@@ -12,6 +12,10 @@ Completion suggestions appear automatically as you type, or can be triggered man
 * *Placeholder Navigation:* Press kbd:[Tab] to navigate sequentially between placeholder fields (e.g., element names, descriptions, data types) and kbd:[Shift+Tab] to jump back to previous placeholders.
 * *Choice Dropdowns:* Where applicable, placeholders present a dropdown list of valid choices (such as primitive XSD types).
 
+Snippet matching is case-insensitive and uses the element or predicate name. Exact matches appear first, followed by name prefixes, word or CamelCase boundaries, and substring matches. For example, `meas` finds `Measurement`, and `name` finds `preferredName`. Plain-word predicate searches match name prefixes and word boundaries only; use a declared SAMM prefix to search within a name (e.g., `samm:ri` finds `description`).
+
+Some inline property snippets also have additional search keywords: `[prop` finds property configuration snippets applicable in the current context, and `[abstractProperty` finds the extended abstract property snippet when the enclosing entity has `samm:extends`.
+
 '''
 
 == 1. Document Setup
@@ -234,7 +238,7 @@ TIP: When editing the object of `samm-c:constraint`, type `[` followed by the co
 
 == 5. Metadata & Documentation Predicates
 
-When the cursor is positioned inside a SAMM element declaration, invoking completion on an empty line (kbd:[Ctrl+Space]) or typing with the `samm:` prefix offers quick metadata predicate snippets:
+When the cursor is positioned inside a SAMM element declaration, invoking completion on an empty line (kbd:[Ctrl+Space]), typing a plain word (e.g., `pref` or `name` for `preferredName`), or typing with the declared SAMM prefix offers quick metadata predicate snippets. The following examples use `samm:`:
 
 [cols="25%,25%,50%",options="header"]
 |===
@@ -261,10 +265,16 @@ NOTE: The completion service automatically adapts the trailing statement separat
 
 In addition to full code snippets, the extension provides context-aware value completions when editing predicate values:
 
-* **Data Types (`samm:dataType`):** Suggests standard XSD types (`xsd:string`, `xsd:integer`, `xsd:boolean`, `xsd:decimal`, `xsd:dateTime`, etc.), predefined SAMM entities (`samm-e:FileResource`, `samm-e:TimeSeriesEntity`), and custom entities defined in your workspace.
-* **Measurement Units (`samm-c:unit`, `samm:referenceUnit`):** Search and auto-complete for more than 1,000 standard physical units from the SAMM unit catalog. When editing a `Duration`, time-related units (seconds, minutes, hours, days, etc.) are automatically prioritized.
+* **Data Types (`samm:dataType`):** Generally suggests standard XSD types (`xsd:string`, `xsd:integer`, `xsd:boolean`, `xsd:decimal`, `xsd:dateTime`, etc.), `rdf:langString`, `samm:curie`, and entities defined in the current document. For `SingleEntity`, suggestions contain predefined SAMM entities (e.g., `samm-e:FileResource`) and entities from the current document, without primitive datatypes. For `TimeSeries`, suggestions contain `samm-e:TimeSeriesEntity` and entities in the current document that directly extend it.
+* **Measurement Units (`samm-c:unit`, `samm:referenceUnit`):** Search and auto-complete for more than 1,000 standard physical units from the SAMM unit catalog. When editing a `Duration`, suggestions are filtered to time units, with common units such as seconds, minutes, hours, and days prioritized.
 * **MIME Types (`samm-e:mimeType`):** Quick completion for standard MIME types (e.g., `application/json`, `text/turtle`, `application/pdf`, `image/png`, `model/step`) with human-readable format descriptions.
-* **Languages & Locales (`samm-c:languageCode`, `samm-c:localeCode`):** Full list of ISO 639-1 language codes (with common languages like `en`, `de`, `fr`, `es` prioritized) and standard BCP 47 locales (`en-US`, `de-DE`, etc.).
+* **Languages & Locales (`samm-c:languageCode`, `samm-c:localeCode`):** Full list of ISO 639-1 language codes (with common languages like `en`, `de`, `fr`, `es` prioritized) and a curated list of common BCP 47 locales (`en-US`, `de-DE`, etc.).
 * **Bounds (`samm-c:lowerBoundDefinition`, `samm-c:upperBoundDefinition`):** Suggests `samm-c:AT_LEAST` and `samm-c:GREATER_THAN` for lower bounds, and `samm-c:AT_MOST` and `samm-c:LESS_THAN` for upper bounds.
 * **Encodings (`samm:value` under `EncodingConstraint`):** Suggests standard character sets such as `samm:UTF-8`, `samm:US-ASCII`, `samm:ISO-8859-1`, `samm:UTF-16`, etc.
-* **Characteristics (`samm:characteristic`, `samm-c:elementCharacteristic`, `samm-c:baseCharacteristic`, `samm-c:left`, `samm-c:right`):** Auto-completes predefined characteristics (`samm-c:Text`, `samm-c:Timestamp`, etc.) and all local characteristics defined in your files.
+* **Characteristics (`samm:characteristic`, `samm-c:elementCharacteristic`, `samm-c:baseCharacteristic`, `samm-c:left`, `samm-c:right`):** Auto-completes predefined characteristics (`samm-c:Text`, `samm-c:Timestamp`, etc.) and named characteristics defined in the current document. For a `SingleEntity` or `Duration` subject, predefined suggestions are restricted to `samm-c:SingleEntity` or `samm-c:Duration`, respectively; characteristics from the current document remain available.
+* **Booleans (`samm:optional`, `samm:notInPayload`):** Suggests `true` and `false`.
+* **Quantity Kinds (`samm:quantityKind`):** Suggests quantity kinds from the SAMM unit catalog using the document's unit prefix.
+* **Inheritance Targets (`samm:extends`):** For a Property or an inline property configuration in a `samm:properties` list, suggests abstract properties defined in the current document. For an Entity or AbstractEntity, suggests predefined SAMM entities and entities or abstract entities from the current document. If the subject type is unknown, both kinds of targets are offered.
+* **RDF Types (`a`, `rdf:type`):** Suggests SAMM core classes, characteristic classes, constraint classes, `samm:Unit`, and `samm:QuantityKind`. Inside an anonymous blank node, suggestions are scoped to the enclosing predicate where supported: for example, characteristic classes under `samm:characteristic`, constraint classes under `samm-c:constraint`, or `samm:Property` inside a `samm:properties` list.
+
+NOTE: Entity, characteristic, and abstract property references described above are collected from the current Turtle document. These suggestions do not scan other files in the workspace.
