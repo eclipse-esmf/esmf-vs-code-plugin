@@ -20,3 +20,6 @@ export const JAVA_OPTIONS = [
 
 /** GitHub repository hosting the SAMM CLI releases. */
 export const GITHUB_RELEASE_REPOSITORY = 'eclipse-esmf/esmf-sdk';
+
+/** Indentation used for predicates in SAMM models and in the language server snippets. */
+export const PREDICATE_INDENT = '   ';
