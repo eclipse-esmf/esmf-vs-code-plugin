@@ -5,10 +5,13 @@ The Semantic Models extension provides intelligent code completion, pre-built sn
 
 == How It Works
 
-Completion suggestions appear automatically as you type, or can be triggered manually at any position by pressing kbd:[Ctrl+Space] (or kbd:[Cmd+Space] on macOS).
+Completion suggestions appear automatically as you type, or can be triggered manually at any position by pressing kbd:[Ctrl+Space].
+
+[#manual-trigger]
+NOTE: kbd:[Ctrl+Space] may already be used by your operating system. In that case, try kbd:[Option+Esc] on macOS, run *Trigger Suggest* from the Command Palette, or assign a different shortcut to the *Trigger Suggest* command in *Keyboard Shortcuts*.
 
 * *Context-Aware Filtering:* The editor understands where your cursor is positioned—whether you are in the document header, defining a top-level element, adding metadata predicates inside a subject, editing the `samm:properties` list, or declaring an inline characteristic. Only valid and applicable templates are shown.
-* *Automatic Prefix & Version Adaptation:* Snippets dynamically resolve and adapt to the prefixes declared in your document (such as `:`, `samm:`, `samm-c:`, `samm-e:`, `unit:`, `xsd:`) as well as the active SAMM metamodel version.
+* *Automatic Prefix & Version Adaptation:* Snippets dynamically resolve and adapt to the prefixes declared in your document (such as `:`, `samm:`, `samm-c:`, `samm-e:`, `unit:`, `xsd:`) as well as the active SAMM version.
 * *Placeholder Navigation:* Press kbd:[Tab] to navigate sequentially between placeholder fields (e.g., element names, descriptions, data types) and kbd:[Shift+Tab] to jump back to previous placeholders.
 * *Choice Dropdowns:* Where applicable, placeholders present a dropdown list of valid choices (such as primitive XSD types).
 
@@ -27,7 +30,7 @@ When creating a new Aspect Model file, generate standard namespace prefixes in a
 | Trigger Prefix | Template Name | Description
 | `prefix` / `@prefix`
 | SAMM Prefix Header
-| Inserts standard `@prefix` declarations for the local model URN, SAMM meta-model, characteristics, entities, units, RDF syntax (`rdf:`), and XML Schema Datatypes (`xsd:`).
+| Inserts standard `@prefix` declarations for the local model URN, the SAMM namespace (`samm:`), characteristics, entities, units, RDF syntax (`rdf:`), and XML Schema Datatypes (`xsd:`).
 |===
 
 .Example Result
@@ -238,7 +241,7 @@ TIP: When editing the object of `samm-c:constraint`, type `[` followed by the co
 
 == 5. Metadata & Documentation Predicates
 
-When the cursor is positioned inside a SAMM element declaration, invoking completion on an empty line (kbd:[Ctrl+Space]), typing a plain word (e.g., `pref` or `name` for `preferredName`), or typing with the declared SAMM prefix offers quick metadata predicate snippets. The following examples use `samm:`:
+When the cursor is positioned inside a SAMM element declaration, invoking completion manually on an empty line (see <<manual-trigger,how to trigger completion>>), typing a plain word (e.g., `pref` or `name` for `preferredName`), or typing with the declared SAMM prefix offers quick metadata predicate snippets. The following examples use `samm:`:
 
 [cols="25%,25%,50%",options="header"]
 |===

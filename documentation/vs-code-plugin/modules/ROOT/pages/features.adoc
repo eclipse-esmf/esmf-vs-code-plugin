@@ -5,7 +5,7 @@
 * Syntax highlighting for `.ttl` files.
 * Document outline for navigating the current file.
 * Automatic syntax validation while typing, with diagnostics in the editor and the *Problems* view.
-* Intelligent code completion and snippet templates for SAMM metamodel elements and attributes (see xref:code-snippets.adoc[]).
+* Intelligent code completion and snippet templates for SAMM elements and attributes (see xref:code-snippets.adoc[]).
 
 == Code Snippets and Auto-Completion
 
