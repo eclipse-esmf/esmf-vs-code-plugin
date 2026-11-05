@@ -3,6 +3,11 @@
 
 The Semantic Models extension provides intelligent code completion, pre-built snippet templates, and context-aware value suggestions for authoring SAMM Aspect Models in Turtle (`.ttl`). These features help you write models faster, reduce syntax errors, and explore SAMM constructs effortlessly without memorizing complex syntax.
 
+[.snippet-video-launcher]
+xref:attachment$samm-snippets.mp4[Watch the snippet demonstration] to see namespace prefixes, an Aspect, a Property, and a Trait with an inline constraint.
+
+include::partial$snippet-video-player.adoc[]
+
 == How It Works
 
 Completion suggestions appear automatically as you type, or can be triggered manually at any position by pressing kbd:[Ctrl+Space].

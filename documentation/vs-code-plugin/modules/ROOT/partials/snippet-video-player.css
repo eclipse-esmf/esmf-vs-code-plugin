@@ -1,0 +1,131 @@
+/* SPDX-License-Identifier: MPL-2.0 */
+
+.snippet-video-dialog {
+    width: min(960px, calc(100vw - 2rem));
+    max-height: calc(100vh - 2rem);
+    max-height: calc(100dvh - 2rem);
+    margin: auto;
+    padding: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+    border: 1px solid #d0d7de;
+    border-radius: 8px;
+    background: #fff;
+    color: #20252b;
+    font: inherit;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.25);
+    box-sizing: border-box;
+}
+
+.snippet-video-dialog:not([open]) {
+    display: none;
+}
+
+.snippet-video-dialog::backdrop {
+    background: rgba(0, 0, 0, 0.65);
+}
+
+.snippet-video-dialog .snippet-video-dialog__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+}
+
+.snippet-video-dialog h2 {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    color: inherit;
+    font: inherit;
+    font-size: 1.125rem;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+.snippet-video-dialog #snippet-video-description {
+    margin: 0.25rem 0 0;
+    color: #57606a;
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+.snippet-video-dialog__close-form {
+    flex: none;
+    margin: 0;
+}
+
+.snippet-video-dialog .snippet-video-dialog__close {
+    min-height: 44px;
+    padding: 0.5rem 0.875rem;
+    border: 1px solid #d0d7de;
+    border-radius: 4px;
+    background: #fff;
+    color: inherit;
+    font: inherit;
+    font-size: 0.875rem;
+    cursor: pointer;
+}
+
+.snippet-video-dialog .snippet-video-dialog__close:hover {
+    background: #f3f5f7;
+    border-color: #57606a;
+}
+
+.snippet-video-dialog :is(button, a, video):focus-visible {
+    outline: 3px solid #1967d2;
+    outline-offset: 3px;
+}
+
+.snippet-video-dialog .snippet-video-dialog__video {
+    display: block;
+    width: 100%;
+    aspect-ratio: 1048 / 904;
+    max-height: 68vh;
+    max-height: 68dvh;
+    object-fit: contain;
+    background: #000;
+}
+
+.snippet-video-dialog .snippet-video-dialog__footer {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+    padding: 0.875rem 1.25rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+.snippet-video-dialog .snippet-video-dialog__status {
+    flex: 1 1 12rem;
+    min-height: 1.5em;
+    margin: 0;
+    color: #57606a;
+}
+
+.snippet-video-dialog .snippet-video-dialog__status:empty {
+    display: none;
+}
+
+.snippet-video-dialog .snippet-video-dialog__direct {
+    margin-left: auto;
+    color: #1967d2;
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
+}
+
+@media (max-width: 480px) {
+    .snippet-video-dialog {
+        width: calc(100vw - 1rem);
+        max-height: calc(100vh - 1rem);
+        max-height: calc(100dvh - 1rem);
+    }
+
+    .snippet-video-dialog .snippet-video-dialog__header,
+    .snippet-video-dialog .snippet-video-dialog__footer {
+        padding: 0.875rem;
+    }
+}
