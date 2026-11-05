@@ -51,6 +51,10 @@ When creating a new Aspect Model file, generate standard namespace prefixes in a
 
 Core metamodel elements define the primary structure of an Aspect Model. You can invoke these templates at the root level of your Turtle document.
 
+Type the trigger word at the start of a new or existing empty line, where a new element would begin (for example `Aspect`).
+
+The templates require the following prefix declarations in your document. Use the template from <<_1_document_setup,Document Setup>> to create them. If a required prefix is missing, the template is not shown.
+
 === Top-Level Definitions
 
 [cols="22%,28%,50%",options="header"]
