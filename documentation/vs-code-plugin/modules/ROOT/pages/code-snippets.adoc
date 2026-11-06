@@ -6,7 +6,7 @@ These features help you write models faster, reduce syntax errors, and explore S
  +
  +
 ++++
-<video src="_attachments/samm-snippets.mp4" controls autoplay muted loop playsinline style="width: 100%; box-shadow: 0 3px 12px rgba(0, 0, 0, 0.3); border-radius: 20px;" aria-label="Snippet and auto-completion demonstration"></video>
+<video src="_attachments/samm-snippets.mp4" controls autoplay muted playsinline style="display: block; margin-inline: auto; width: 90%; box-shadow: 0 3px 12px rgba(0, 0, 0, 0.3); border-radius: 20px;" aria-label="Snippet and auto-completion demonstration"></video>
 ++++
 
 == How It Works
