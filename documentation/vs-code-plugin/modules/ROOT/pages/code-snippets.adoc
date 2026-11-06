@@ -1,12 +1,13 @@
 = Code Snippets and Auto-Completion
 :experimental:
 
-The Semantic Models extension provides intelligent code completion, pre-built snippet templates, and context-aware value suggestions for authoring SAMM Aspect Models in Turtle (`.ttl`). These features help you write models faster, reduce syntax errors, and explore SAMM constructs effortlessly without memorizing complex syntax.
-
-[.snippet-video-launcher]
-xref:attachment$samm-snippets.mp4[Watch the snippet demonstration] to see namespace prefixes, an Aspect, a Property, and a Trait with an inline constraint.
-
-include::partial$snippet-video-player.adoc[]
+The Semantic Models extension provides intelligent code completion, pre-built snippet templates, and context-aware value suggestions for authoring SAMM Aspect Models in Turtle (`.ttl`).
+These features help you write models faster, reduce syntax errors, and explore SAMM constructs effortlessly without memorizing complex syntax.
+ +
+ +
+++++
+<video src="_attachments/samm-snippets.mp4" controls autoplay muted loop playsinline style="width: 100%; box-shadow: 0 3px 12px rgba(0, 0, 0, 0.3); border-radius: 20px;" aria-label="Snippet and auto-completion demonstration"></video>
+++++
 
 == How It Works
 
