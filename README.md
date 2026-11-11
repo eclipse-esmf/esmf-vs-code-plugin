@@ -11,16 +11,12 @@ For installation, prerequisites, and a sample walkthrough, see the [user guide](
 
 ## Configuration
 
-- `semantic-models.languageServerSettings.activateEmbeddedLanguageServer` (boolean, default: `true`)
-  - When enabled, the extension starts the SAMM language server process. When disabled, an external language server must be started manually.
 - `semantic-models.languageServerSettings.automaticUpdateCheck` (boolean, default: `true`)
   - Automatically check for updates to the SAMM language server and notify when a new version is available.
 - `semantic-models.languageServerSettings.sammCliPath` (string)
   - Path to the SAMM CLI executable or JAR file to use as the language server. Can be downloaded or selected using the 'Select SAMM CLI Executable' command.
-- `semantic-models.languageServerSettings.serverPort` (number, default: `1846`)
-  - TCP port used to connect to the SAMM language server.
 - `semantic-models.languageServerSettings.environmentVariables` (object, default: `{}`)
-  - A map of environment variable names to string values for the embedded language server (native executable or JAR). These values override inherited environment variables; other inherited variables are preserved. Externally managed servers are unaffected.
+  - A map of environment variable names to string values for the language server (native executable or JAR). These values override inherited environment variables; other inherited variables are preserved.
 - `semantic-models.modelResolution.githubRepositories` (array, default: `[]`)
   - Additional GitHub repositories to use for Aspect Model Resolution (e.g. `Go to Definition` and validation of models referencing Aspect Models hosted in other repositories). Each entry supports:
     - `repository` (string, required) - repository in the format `owner/repository`, e.g. `eclipse-esmf/esmf-sdk`.
@@ -81,5 +77,5 @@ When each validation runs:
   - Sends a server request for the active Turtle document.
 - `Semantic Models: Select SAMM CLI Executable`
   - Opens a quick pick with the latest ten GitHub releases and a custom-path option.
-- `Semantic Models: Restart Language Server Connection`
-  - Restarts the language server and reconnects the client.
+- `Semantic Models: Restart Language Server`
+  - Restarts the language server process.

@@ -32,7 +32,7 @@ If the release picker or download fails, try selecting a manually downloaded CLI
 === Language server stops being available
 
 If language features such as syntax highlighting are unavailable, it may be due to the language server not running.
-To start or restart it manually, open the Command Palette (View -> Command Palette) and run `Semantic Models: Restart Language Server Connection`.
+To start or restart it manually, open the Command Palette (View -> Command Palette) and run `Semantic Models: Restart Language Server`.
 
 
 == Accessing the VS Code extension logs (for troubleshooting/debugging)
