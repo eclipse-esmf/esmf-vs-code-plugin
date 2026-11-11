@@ -50,8 +50,9 @@ export interface SupervisorClock {
 export type TerminalAction = 'restart' | 'output' | 'settings' | undefined;
 
 export interface LanguageServicesSupervisorOptions {
+    useEmbeddedServer(): boolean;
     createServer(): ManagedLanguageServer;
-    createClient(server: ManagedLanguageServer): ManagedLanguageClient;
+    createClient(server?: ManagedLanguageServer): ManagedLanguageClient;
     setRequestClient(client: RequestClient, generation: number): void;
     unavailableClient(): RequestClient;
     notifyTerminal(): Promise<TerminalAction>;
@@ -139,12 +140,14 @@ export class LanguageServicesSupervisor {
         const candidate: Candidate = {generation, subscriptions: []};
         const startedAt = this.clock.now();
         try {
-            candidate.server = this.options.createServer();
-            candidate.subscriptions.push(candidate.server.onExit(event => this.onServerExit(generation, event)));
-            await candidate.server.start();
-            if (!this.isCurrent(generation)) {
-                await this.cleanupCandidate(candidate, 'stale-after-server-start');
-                return;
+            if (this.options.useEmbeddedServer()) {
+                candidate.server = this.options.createServer();
+                candidate.subscriptions.push(candidate.server.onExit(event => this.onServerExit(generation, event)));
+                await candidate.server.start();
+                if (!this.isCurrent(generation)) {
+                    await this.cleanupCandidate(candidate, 'stale-after-server-start');
+                    return;
+                }
             }
 
             candidate.client = this.options.createClient(candidate.server);

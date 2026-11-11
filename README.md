@@ -11,6 +11,8 @@ For installation, prerequisites, and a sample walkthrough, see the [user guide](
 
 ## Configuration
 
+- `semantic-models.languageServerSettings.useEmbeddedLanguageServer` (boolean, default: `true`)
+  - When enabled, the extension starts the configured SAMM CLI over stdio. When disabled, it connects to an externally started language server over TCP at `127.0.0.1:1846`.
 - `semantic-models.languageServerSettings.automaticUpdateCheck` (boolean, default: `true`)
   - Automatically check for updates to the SAMM language server and notify when a new version is available.
 - `semantic-models.languageServerSettings.sammCliPath` (string)

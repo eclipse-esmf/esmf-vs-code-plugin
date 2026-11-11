@@ -123,7 +123,7 @@ export async function activate(ctx: vscode.ExtensionContext): Promise<void> {
 
     void validateConfiguredGithubRepositories();
 
-    if (!settings.getSammCliPath()) {
+    if (settings.isEmbeddedLanguageServerEnabled() && !settings.getSammCliPath()) {
         const selection = await vscode.window.showErrorMessage(
             'No SAMM CLI path configured. Required for Language Server functionality.',
             'Select or download SAMM CLI Executable',
@@ -136,7 +136,7 @@ export async function activate(ctx: vscode.ExtensionContext): Promise<void> {
 
     void languageServicesSupervisor.start('extension activation');
 
-    if (settings.sammCliAutoUpdateIsEnabled()) {
+    if (settings.isEmbeddedLanguageServerEnabled() && settings.sammCliAutoUpdateIsEnabled()) {
         sammCliDownloader.checkForSammCliUpdates().catch(error => {
             outputChannel.error(`Failed to check for SAMM CLI updates: ${error instanceof Error ? error.message : String(error)}`);
         });
@@ -162,6 +162,7 @@ function scheduleGithubRepositoryValidation(): void {
 
 function createLanguageServicesSupervisor(): LanguageServicesSupervisor {
     return new LanguageServicesSupervisor({
+        useEmbeddedServer: () => settings.isEmbeddedLanguageServerEnabled(),
         createServer: () => new TurtleLanguageServer(
             context,
             outputChannel,
@@ -188,7 +189,7 @@ function createLanguageServicesSupervisor(): LanguageServicesSupervisor {
 
 async function notifyTerminalRecoveryFailure(): Promise<TerminalAction> {
     const selection = await vscode.window.showErrorMessage(
-        'The Turtle language server could not be recovered after four attempts. Check the configured SAMM CLI executable and extension settings.',
+        'The Turtle language server could not be recovered after four attempts. Check the language server process and its startup configuration.',
         'Restart Now',
         'Show Language Server Output',
         'Check Extension Settings',

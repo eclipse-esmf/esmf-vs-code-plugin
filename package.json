@@ -70,17 +70,23 @@
       "type": "object",
       "description": "Configuration settings for the Semantic Models extension.",
       "properties": {
+        "semantic-models.languageServerSettings.useEmbeddedLanguageServer": {
+          "type": "boolean",
+          "default": true,
+          "description": "Start the configured SAMM CLI as an embedded stdio language server. When disabled, connect to an externally started language server at 127.0.0.1:1846.",
+          "order": 0
+        },
         "semantic-models.languageServerSettings.automaticUpdateCheck": {
           "type": "boolean",
           "default": true,
           "description": "Automatically check for updates to the SAMM language server and notify when a new version is available.",
-          "order": 0
+          "order": 1
         },
         "semantic-models.languageServerSettings.sammCliPath": {
           "type": "string",
           "default": "",
           "description": "Path to the SAMM CLI executable or JAR file to use as the language server. Can be downloaded or selected using the 'Select SAMM CLI Executable' command.",
-          "order": 1
+          "order": 2
         },
         "semantic-models.languageServerSettings.environmentVariables": {
           "type": "object",
@@ -89,7 +95,7 @@
           },
           "default": {},
           "description": "Environment variables to set when starting the language server (native executable or JAR). Values must be strings and override inherited environment variables.",
-          "order": 2
+          "order": 3
         },
         "semantic-models.modelResolution.githubRepositories": {
           "type": "array",
@@ -131,7 +137,7 @@
           },
           "default": [],
           "markdownDescription": "Additional GitHub repositories to be used for Aspect Model Resolution. Enables e.g. go to Definition and validation of models that reference Aspect Models in other repositories. Each entry must specify the repository in the format `owner/repository`, and may optionally specify a branch/tag, path, and GitHub token for authentication.",
-          "order": 3
+          "order": 4
         }
       }
     },

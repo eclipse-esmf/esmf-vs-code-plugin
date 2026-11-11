@@ -128,10 +128,11 @@ class FakeClient implements ManagedLanguageClient {
 
 type Harness = ReturnType<typeof createHarness>;
 
-function createHarness(clientFailures: boolean[] = []) {
+function createHarness(clientFailures: boolean[] = [], embedded = true) {
     const clock = new FakeClock();
     const servers: FakeServer[] = [];
     const clients: FakeClient[] = [];
+    const clientServers: Array<ManagedLanguageServer | undefined> = [];
     const bindings: Array<{client: RequestClient; generation: number}> = [];
     const logs: string[] = [];
     const notifications: string[] = [];
@@ -145,12 +146,14 @@ function createHarness(clientFailures: boolean[] = []) {
         error: message => logs.push(String(message)),
     };
     const supervisor = new LanguageServicesSupervisor({
+        useEmbeddedServer: () => embedded,
         createServer: () => {
             const server = new FakeServer(++serverId);
             servers.push(server);
             return server;
         },
-        createClient: () => {
+        createClient: server => {
+            clientServers.push(server);
             const client = new FakeClient(clientFailures[clientIndex++] ? new Error('connect failed') : undefined);
             clients.push(client);
             return client;
@@ -166,7 +169,7 @@ function createHarness(clientFailures: boolean[] = []) {
         logger,
         clock,
     });
-    return {supervisor, clock, servers, clients, bindings, logs, notifications};
+    return {supervisor, clock, servers, clients, clientServers, bindings, logs, notifications};
 }
 
 async function settle(): Promise<void> {
@@ -261,6 +264,23 @@ suite('LanguageServicesSupervisor', () => {
         harness.clock.advance(1_000);
         await settle();
         assert.strictEqual(harness.servers.length, 2);
+        await harness.supervisor.dispose();
+    });
+
+    test('external mode starts no server and manual restart recreates the client', async () => {
+        const harness = createHarness([], false);
+        await start(harness);
+
+        assert.strictEqual(harness.servers.length, 0);
+        assert.deepStrictEqual(harness.clientServers, [undefined]);
+
+        await harness.supervisor.restart('manual override');
+        await settle();
+
+        assert.strictEqual(harness.servers.length, 0);
+        assert.strictEqual(harness.clients.length, 2);
+        assert.strictEqual(harness.clients[0].disconnects, 1);
+        assert.deepStrictEqual(harness.clientServers, [undefined, undefined]);
         await harness.supervisor.dispose();
     });
 

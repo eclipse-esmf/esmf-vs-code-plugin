@@ -12,6 +12,7 @@
  */
 
 import {Trace} from 'vscode-jsonrpc';
+import * as net from 'node:net';
 import * as vscode from 'vscode';
 import {CloseAction, DocumentFilter, ErrorAction, ErrorHandler, LanguageClient, LanguageClientOptions, State, StreamInfo} from 'vscode-languageclient/node';
 import type {RequestClient} from './aspectValidation';
@@ -20,6 +21,7 @@ import type {ExtensionLogger} from './outputChannel';
 import type {DisposableLike, ManagedLanguageServer} from './languageServicesSupervisor';
 
 const CLIENT_START_TIMEOUT_MS = 60_000;
+const EXTERNAL_LANGUAGE_SERVER_PORT = 1846;
 
 export const TURTLE_DOCUMENT_SELECTOR: DocumentFilter[] = [
     {language: 'turtle', scheme: 'file'},
@@ -50,7 +52,7 @@ export class TurtleLanguageClient implements RequestClient, GraphicalViewRequest
 
     constructor(
         private outputChannel: ExtensionLogger,
-        private readonly server: ManagedLanguageServer,
+        private readonly server: ManagedLanguageServer | undefined,
         private readonly logLevel: vscode.LogLevel
     ) {
         this.client = this.initLanguageClient(this.server);
@@ -77,8 +79,22 @@ export class TurtleLanguageClient implements RequestClient, GraphicalViewRequest
         }
     }
 
-    private initLanguageClient(server: ManagedLanguageServer): LanguageClient {
-        const serverOptions = async (): Promise<StreamInfo> => server.getStreams();
+    private initLanguageClient(server: ManagedLanguageServer | undefined): LanguageClient {
+        const serverOptions = async (): Promise<StreamInfo> => {
+            if (server) {
+                return server.getStreams();
+            }
+
+            return new Promise((resolve, reject) => {
+                const socket = net.connect({host: '127.0.0.1', port: EXTERNAL_LANGUAGE_SERVER_PORT}, () => {
+                    resolve({reader: socket, writer: socket});
+                });
+                socket.once('error', error => {
+                    socket.destroy();
+                    reject(error);
+                });
+            });
+        };
 
         const clientOptions: LanguageClientOptions = {
             documentSelector: TURTLE_DOCUMENT_SELECTOR,

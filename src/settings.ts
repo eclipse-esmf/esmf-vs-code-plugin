@@ -23,6 +23,10 @@ export interface GithubRepositoryConfig {
 
 export class TurtleExtensionSettings {
 
+    isEmbeddedLanguageServerEnabled(): boolean {
+        return vscode.workspace.getConfiguration('semantic-models.languageServerSettings').get<boolean>('useEmbeddedLanguageServer', true);
+    }
+
     getSammCliPath(): string {
         return vscode.workspace.getConfiguration('semantic-models.languageServerSettings').get<string>('sammCliPath', '');
     }
