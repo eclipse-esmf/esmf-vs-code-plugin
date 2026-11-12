@@ -23,6 +23,7 @@ import {LanguageServicesSupervisor, TerminalAction} from './languageServicesSupe
 import type {ExtensionLogger} from './outputChannel';
 import {SammCliDownloader} from './sammCliDownloader';
 import {TurtleExtensionSettings} from './settings';
+import {TURTLE_ON_ENTER_RULES} from './turtleLanguageConfiguration';
 
 const SELECT_EXECUTABLE_COMMAND = 'semantic-models.selectSammCliExecutable';
 const SELECT_EXECUTABLE_TITLE = 'Select SAMM CLI Executable';
@@ -89,15 +90,7 @@ export async function activate(ctx: vscode.ExtensionContext): Promise<void> {
 
     context.subscriptions.push(
         vscode.languages.setLanguageConfiguration('turtle', {
-            onEnterRules: [
-                {
-                    beforeText: /\.\s*$/,
-                    action: {
-                        indentAction: vscode.IndentAction.Outdent,
-                        appendText: '\n',
-                    },
-                },
-            ],
+            onEnterRules: TURTLE_ON_ENTER_RULES,
         }),
     );
 
