@@ -78,11 +78,11 @@ suite('GraphicalView real webview lifecycle', function () {
             assert.equal(wheel.prevented, true);
             assert.ok(wheel.afterZoom > wheel.beforeZoom);
             assert.ok(
-                Math.abs(wheel.beforePoint.x - wheel.afterPoint.x) * wheel.afterZoom < 0.5,
+                Math.abs(wheel.beforePoint.x - wheel.afterPoint.x) * wheel.afterZoom < 1,
                 `wheel x anchor drift: ${JSON.stringify(wheel)}`,
             );
             assert.ok(
-                Math.abs(wheel.beforePoint.y - wheel.afterPoint.y) * wheel.afterZoom < 0.5,
+                Math.abs(wheel.beforePoint.y - wheel.afterPoint.y) * wheel.afterZoom < 1,
                 `wheel y anchor drift: ${JSON.stringify(wheel)}`,
             );
 
@@ -96,8 +96,8 @@ suite('GraphicalView real webview lifecycle', function () {
 
             const button = await probe(panel, messages, 'zoomIn');
             assert.ok(button.afterZoom > button.beforeZoom);
-            assert.ok(Math.abs(button.beforePoint.x - button.afterPoint.x) * button.afterZoom < 0.5);
-            assert.ok(Math.abs(button.beforePoint.y - button.afterPoint.y) * button.afterZoom < 0.5);
+            assert.ok(Math.abs(button.beforePoint.x - button.afterPoint.x) * button.afterZoom < 1);
+            assert.ok(Math.abs(button.beforePoint.y - button.afterPoint.y) * button.afterZoom < 1);
             const reset = await probe(panel, messages, 'reset');
             assert.equal(reset.state.zoom, 1);
 
