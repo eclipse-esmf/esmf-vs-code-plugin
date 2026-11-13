@@ -162,6 +162,10 @@ export class TurtleLanguageClient implements RequestClient, GraphicalViewRequest
             return Promise.reject(new Error('The Turtle language client is not connected.'));
         }
 
+        if (token === undefined) {
+            return this.client.sendRequest<R>(method, params) as Promise<R>;
+        }
+
         return this.client.sendRequest<R>(method, params, token) as Promise<R>;
     }
 
