@@ -23,12 +23,8 @@ export interface GithubRepositoryConfig {
 
 export class TurtleExtensionSettings {
 
-    isEmbeddedLanguageServerStartEnabled(): boolean {
-        return vscode.workspace.getConfiguration('semantic-models.languageServerSettings').get<boolean>('activateEmbeddedLanguageServer', true);
-    }
-
-    async setEmbeddedLanguageServerStartEnabled(enabled: boolean): Promise<void> {
-        await vscode.workspace.getConfiguration('semantic-models.languageServerSettings').update('activateEmbeddedLanguageServer', enabled, vscode.ConfigurationTarget.Global);
+    isEmbeddedLanguageServerEnabled(): boolean {
+        return vscode.workspace.getConfiguration('semantic-models.languageServerSettings').get<boolean>('useEmbeddedLanguageServer', true);
     }
 
     getSammCliPath(): string {
@@ -41,10 +37,6 @@ export class TurtleExtensionSettings {
 
     sammCliAutoUpdateIsEnabled(): boolean {
         return vscode.workspace.getConfiguration('semantic-models.languageServerSettings').get<boolean>('automaticUpdateCheck', true);
-    }
-
-    getSammCliLspServerPort(): number {
-        return vscode.workspace.getConfiguration('semantic-models.languageServerSettings').get<number>('serverPort', 1846);
     }
 
     getSammCliLspEnvironmentVariables(): Record<string, string> {

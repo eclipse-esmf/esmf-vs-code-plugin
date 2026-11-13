@@ -12,10 +12,10 @@
  */
 
 import * as assert from 'assert';
+import {PassThrough} from 'node:stream';
 import type {RequestClient} from '../aspectValidation';
 import {
     DisposableLike,
-    LanguageServicesConfiguration,
     LanguageServicesSupervisor,
     ManagedLanguageClient,
     ManagedLanguageServer,
@@ -79,6 +79,11 @@ class FakeServer implements ManagedLanguageServer {
         this.stops++;
     }
 
+    getStreams(): {reader: NodeJS.ReadableStream; writer: NodeJS.WritableStream} {
+        const stream = new PassThrough();
+        return {reader: stream, writer: stream};
+    }
+
     onExit(listener: (event: ServerExitEvent) => void): DisposableLike {
         this.listeners.add(listener);
         return {dispose: () => this.listeners.delete(listener)};
@@ -123,10 +128,11 @@ class FakeClient implements ManagedLanguageClient {
 
 type Harness = ReturnType<typeof createHarness>;
 
-function createHarness(mode: 'embedded' | 'external' = 'embedded', clientFailures: boolean[] = []) {
+function createHarness(clientFailures: boolean[] = [], embedded = true) {
     const clock = new FakeClock();
     const servers: FakeServer[] = [];
     const clients: FakeClient[] = [];
+    const clientServers: Array<ManagedLanguageServer | undefined> = [];
     const bindings: Array<{client: RequestClient; generation: number}> = [];
     const logs: string[] = [];
     const notifications: string[] = [];
@@ -139,23 +145,23 @@ function createHarness(mode: 'embedded' | 'external' = 'embedded', clientFailure
         warn: message => logs.push(message),
         error: message => logs.push(String(message)),
     };
-    const configuration = (): LanguageServicesConfiguration => ({mode, port: 1846});
     const supervisor = new LanguageServicesSupervisor({
-        configuration,
+        useEmbeddedServer: () => embedded,
         createServer: () => {
             const server = new FakeServer(++serverId);
             servers.push(server);
             return server;
         },
-        createClient: () => {
+        createClient: server => {
+            clientServers.push(server);
             const client = new FakeClient(clientFailures[clientIndex++] ? new Error('connect failed') : undefined);
             clients.push(client);
             return client;
         },
         setRequestClient: (client, generation) => bindings.push({client, generation}),
         unavailableClient: () => ({sendRequest: async () => Promise.reject(new Error('unavailable'))}),
-        notifyTerminal: async currentMode => {
-            notifications.push(currentMode);
+        notifyTerminal: async () => {
+            notifications.push('terminal');
             return undefined;
         },
         showOutput: () => undefined,
@@ -163,7 +169,7 @@ function createHarness(mode: 'embedded' | 'external' = 'embedded', clientFailure
         logger,
         clock,
     });
-    return {supervisor, clock, servers, clients, bindings, logs, notifications};
+    return {supervisor, clock, servers, clients, clientServers, bindings, logs, notifications};
 }
 
 async function settle(): Promise<void> {
@@ -211,7 +217,7 @@ suite('LanguageServicesSupervisor', () => {
     });
 
     test('uses exact retry delays and emits one terminal notification', async () => {
-        const harness = createHarness('embedded', [true, true, true, true, true]);
+        const harness = createHarness([true, true, true, true, true]);
         await start(harness);
 
         for (const delay of [1_000, 2_000, 4_000, 8_000]) {
@@ -249,28 +255,6 @@ suite('LanguageServicesSupervisor', () => {
         await harness.supervisor.dispose();
     });
 
-    test('external mode exhausts bounded reconnects without a server and allows manual recovery', async () => {
-        const harness = createHarness('external', [false, true, true, true, true]);
-        await start(harness);
-        assert.strictEqual(harness.servers.length, 0);
-        harness.clients[0].close();
-        await settle();
-
-        for (const delay of [1_000, 2_000, 4_000, 8_000]) {
-            harness.clock.advance(delay);
-            await settle();
-        }
-
-        assert.strictEqual(harness.servers.length, 0);
-        assert.strictEqual(harness.clients.length, 5);
-        assert.deepStrictEqual(harness.notifications, ['external']);
-
-        await harness.supervisor.restart('manual override');
-        assert.strictEqual(harness.servers.length, 0);
-        assert.strictEqual(harness.clients.length, 6);
-        await harness.supervisor.dispose();
-    });
-
     test('manual restart cancels a pending automatic retry', async () => {
         const harness = createHarness();
         await start(harness);
@@ -280,6 +264,23 @@ suite('LanguageServicesSupervisor', () => {
         harness.clock.advance(1_000);
         await settle();
         assert.strictEqual(harness.servers.length, 2);
+        await harness.supervisor.dispose();
+    });
+
+    test('external mode starts no server and manual restart recreates the client', async () => {
+        const harness = createHarness([], false);
+        await start(harness);
+
+        assert.strictEqual(harness.servers.length, 0);
+        assert.deepStrictEqual(harness.clientServers, [undefined]);
+
+        await harness.supervisor.restart('manual override');
+        await settle();
+
+        assert.strictEqual(harness.servers.length, 0);
+        assert.strictEqual(harness.clients.length, 2);
+        assert.strictEqual(harness.clients[0].disconnects, 1);
+        assert.deepStrictEqual(harness.clientServers, [undefined, undefined]);
         await harness.supervisor.dispose();
     });
 

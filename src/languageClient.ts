@@ -18,9 +18,10 @@ import {CloseAction, DocumentFilter, ErrorAction, ErrorHandler, LanguageClient, 
 import type {RequestClient} from './aspectValidation';
 import type {GraphicalViewRequestTransport} from './graphicalViewClient';
 import type {ExtensionLogger} from './outputChannel';
-import type {DisposableLike} from './languageServicesSupervisor';
+import type {DisposableLike, ManagedLanguageServer} from './languageServicesSupervisor';
 
 const CLIENT_START_TIMEOUT_MS = 60_000;
+const EXTERNAL_LANGUAGE_SERVER_PORT = 1846;
 
 export const TURTLE_DOCUMENT_SELECTOR: DocumentFilter[] = [
     {language: 'turtle', scheme: 'file'},
@@ -51,10 +52,10 @@ export class TurtleLanguageClient implements RequestClient, GraphicalViewRequest
 
     constructor(
         private outputChannel: ExtensionLogger,
-        private readonly serverPort: number,
+        private readonly server: ManagedLanguageServer | undefined,
         private readonly logLevel: vscode.LogLevel
     ) {
-        this.client = this.initLanguageClient(this.serverPort);
+        this.client = this.initLanguageClient(this.server);
         this.client.onDidChangeState(event => {
             const available = event.newState === State.Running;
             if (available !== this.lastAvailability) {
@@ -78,18 +79,22 @@ export class TurtleLanguageClient implements RequestClient, GraphicalViewRequest
         }
     }
 
-    private initLanguageClient(serverPort: number): LanguageClient {
-        const serverOptions = async (): Promise<StreamInfo> =>
-            new Promise((resolve, reject) => {
-                const socket = net.connect({host: '127.0.0.1', port: serverPort}, () => {
+    private initLanguageClient(server: ManagedLanguageServer | undefined): LanguageClient {
+        const serverOptions = async (): Promise<StreamInfo> => {
+            if (server) {
+                return server.getStreams();
+            }
+
+            return new Promise((resolve, reject) => {
+                const socket = net.connect({host: '127.0.0.1', port: EXTERNAL_LANGUAGE_SERVER_PORT}, () => {
                     resolve({reader: socket, writer: socket});
                 });
-
                 socket.once('error', error => {
                     socket.destroy();
                     reject(error);
                 });
             });
+        };
 
         const clientOptions: LanguageClientOptions = {
             documentSelector: TURTLE_DOCUMENT_SELECTOR,
