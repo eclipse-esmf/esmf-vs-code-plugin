@@ -1,0 +1,374 @@
+= Code Snippets and Auto-Completion
+:experimental:
+
+The Semantic Models extension provides intelligent code completion, pre-built snippet templates, and context-aware value suggestions for authoring SAMM Aspect Models in Turtle (`.ttl`).
+These features help you write models faster, reduce syntax errors, and explore SAMM constructs effortlessly without memorizing complex syntax.
+ +
+ +
+++++
+<video src="_attachments/samm-snippets.mp4" controls autoplay muted playsinline style="display: block; margin-inline: auto; width: 90%; box-shadow: 0 3px 12px rgba(0, 0, 0, 0.3); border-radius: 20px;" aria-label="Snippet and auto-completion demonstration"></video>
+++++
+
+== How It Works
+
+Completion suggestions appear automatically as you type, or can be triggered manually at any position by pressing kbd:[Ctrl+Space].
+
+[#manual-trigger]
+NOTE: kbd:[Ctrl+Space] may already be used by your operating system. In that case, try kbd:[Option+Esc] on macOS, run *Trigger Suggest* from the Command Palette, or assign a different shortcut to the *Trigger Suggest* command in *Keyboard Shortcuts*.
+
+* *Context-Aware Filtering:* The editor understands where your cursor is positioned—whether you are in the document header, defining a top-level element, adding attributes inside an element, editing the `samm:properties` list, or declaring an inline characteristic. Only valid and applicable templates are shown.
+* *Automatic Prefix & Version Adaptation:* Snippets dynamically resolve and adapt to the prefixes declared in your document (such as `:`, `samm:`, `samm-c:`, `samm-e:`, `unit:`, `xsd:`) as well as the SAMM version that the document declares. The `samm-c:` and `unit:` prefixes are used only when they point to the same SAMM version as `samm:`. If a document declares more than one SAMM meta-model version, no templates are offered.
+* *Placeholder Navigation:* Press kbd:[Tab] to navigate sequentially between placeholder fields (e.g., element names, descriptions, data types) and kbd:[Shift+Tab] to jump back to previous placeholders.
+* *Choice Dropdowns:* Where applicable, placeholders present a dropdown list of valid choices (such as XSD data types, range bound definitions, or character encodings).
+
+Snippet matching is case-insensitive and uses the element or attribute name, plus the additional search keywords listed below. Exact matches appear first, followed by name prefixes, word or CamelCase boundaries, and substring matches. For example, `meas` finds `Measurement`, and `name` finds `preferredName`. Plain-word attribute searches match name prefixes and word boundaries only; use a declared SAMM prefix to search within a name (e.g., `samm:ri` finds `description`).
+
+Some snippets also have additional search keywords:
+
+* `regex` finds the `RegularExpressionConstraint` templates.
+* `title`, `label`, or `display` finds `samm:preferredName`; `summary` or `documentation` finds `samm:description`; `reference`, `link`, or `url` finds `samm:see`; and `sample` finds `samm:exampleValue`.
+* `[prop` finds property configuration snippets applicable in the current context, and `[abstractProperty` finds the extended abstract property snippet when the enclosing entity has `samm:extends`.
+
+'''
+
+[#document-setup]
+== 1. Document Setup
+
+When creating a new Aspect Model file, generate standard namespace prefixes in a single step:
+
+[cols="20%,30%,50%",options="header"]
+|===
+| Trigger Prefix | Template Name | Description
+| `prefix` / `@prefix`
+| SAMM Prefix Header
+| Inserts standard `@prefix` declarations for the local model URN, the SAMM namespace (`samm:`), characteristics, entities, units, RDF syntax (`rdf:`), and XML Schema Datatypes (`xsd:`).
+|===
+
+.Example Result
+[source,turtle]
+----
+@prefix : <urn:samm:com.example.namespace:1.0.0#> .
+@prefix samm: <urn:samm:org.eclipse.esmf.samm:meta-model:2.3.0#> .
+@prefix samm-c: <urn:samm:org.eclipse.esmf.samm:characteristic:2.3.0#> .
+@prefix samm-e: <urn:samm:org.eclipse.esmf.samm:entity:2.3.0#> .
+@prefix unit: <urn:samm:org.eclipse.esmf.samm:unit:2.3.0#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+----
+
+If the document has no prefix declarations yet, this template also appears when you trigger completion on an empty line. All other templates appear only after the document declares the SAMM meta-model namespace (`samm:`).
+
+'''
+
+== 2. Core Metamodel Elements
+
+Core metamodel elements define the primary structure of an Aspect Model. You can invoke these templates at the root level of your Turtle document.
+
+Type the trigger word at the start of a new or existing empty line, where a new element would begin (for example `Aspect`).
+
+The templates use the prefixes declared in your document. Besides `samm:`, every template needs a prefix for your model namespace (usually `:`). Templates for `samm-c:` classes also need `samm-c:`, templates that insert an XSD type (such as `xsd:string`) need `xsd:`, and templates that insert a unit (`Measurement`, `Quantifiable`, `Duration`, and `Unit`) need `unit:`. Use the template from <<document-setup,Document Setup>> to create them. If a required prefix is missing, the template is not shown. The same rule applies to the inline and attribute templates in the following sections.
+
+=== Top-Level Definitions
+
+[cols="22%,28%,50%",options="header"]
+|===
+| Trigger Prefix | Template Name | Description
+| `Aspect`
+| SAMM Aspect
+| Root Aspect definition with preferred name, description, properties, operations, and events.
+| `property`
+| SAMM Property
+| Top-level property referencing a characteristic.
+| `AbstractProperty`
+| SAMM AbstractProperty
+| Abstract property definition intended to be implemented or extended by concrete properties.
+| `Entity`
+| SAMM Entity
+| Structured entity containing a list of properties.
+| `AbstractEntity`
+| SAMM AbstractEntity
+| Abstract entity definition intended for specialization.
+| `Operation`
+| SAMM Operation
+| Operation definition with input parameters and return type.
+| `Event`
+| SAMM Event
+| Event declaration with parameters.
+| `Value`
+| SAMM Value
+| Named constant value instance (e.g., for use in `samm-c:Enumeration` or `samm-c:State` value lists).
+| `Unit`
+| SAMM Unit
+| Custom unit definition with preferred name, symbol, reference unit, and conversion factors.
+|===
+
+=== Property Modifiers & Inline Properties
+
+When editing the `samm:properties ( ... )` list inside an Aspect or Entity, type `[` followed by the trigger keyword (e.g., `[optional`) to insert an inline blank-node property configuration:
+
+[cols="22%,28%,50%",options="header"]
+|===
+| Trigger Prefix | Template Name | Description
+| `[optional`
+| SAMM Optional Property
+| Marks a property as optional: `[ samm:property :propertyName ; samm:optional true ]`.
+| `[payloadName`
+| SAMM Property with Payload Name
+| Specifies a custom JSON/serialized name: `[ samm:property :propertyName ; samm:payloadName "payloadKey" ]`.
+| `[notInPayload`
+| SAMM Property Not In Payload
+| Excludes an Entity or AbstractEntity property from the payload: `[ samm:property :propertyName ; samm:notInPayload true ]`.
+| `[extends`
+| SAMM Extended AbstractProperty
+| Specializes an inherited abstract property in an extending entity (requires `samm:extends` on the enclosing entity): `[ samm:extends :abstractProperty ; samm:characteristic :CharacteristicName ]`.
+|===
+
+'''
+
+== 3. Characteristic Types
+
+Characteristics specify the data type, structure, and constraints of properties. The language server provides snippets both as **standalone top-level definitions** and as **anonymous inline blank nodes** (`[ a samm-c:... ]`).
+
+TIP: To insert an anonymous inline characteristic at a characteristic object position (such as `samm:characteristic`, `samm-c:elementCharacteristic`, `samm-c:baseCharacteristic`, `samm-c:left`, or `samm-c:right`), type `[` followed by the characteristic name (e.g., `[Characteristic` or `[Measurement`).
+
+=== Primitive & Value Characteristics
+
+[cols="20%,25%,25%,30%",options="header"]
+|===
+| Trigger | Standalone Template | Inline Template | Description
+| `Characteristic`
+| SAMM Characteristic
+| SAMM Anonymous Characteristic
+| Standard characteristic with a selectable XSD data type dropdown.
+| `Enumeration`
+| SAMM Enumeration
+| SAMM Anonymous Enumeration
+| Characteristic restricting values to a predefined list of literals.
+| `State`
+| SAMM State
+| SAMM Anonymous State
+| Lifecycle or status definition with allowed values and a default state.
+| `Code`
+| SAMM Code
+| SAMM Anonymous Code
+| Classification code or identifier representation.
+|===
+
+=== Quantities, Measurements & Durations
+
+[cols="20%,25%,25%,30%",options="header"]
+|===
+| Trigger | Standalone Template | Inline Template | Description
+| `Quantifiable`
+| SAMM Quantifiable
+| SAMM Anonymous Quantifiable
+| Numerical property associated with a physical unit (e.g. length, speed).
+| `Measurement`
+| SAMM Measurement
+| SAMM Anonymous Measurement
+| Measured quantity with an associated measurement unit.
+| `Duration`
+| SAMM Duration
+| SAMM Anonymous Duration
+| Temporal duration with standard time units (e.g., `unit:secondUnitOfTime`).
+|===
+
+=== Collections & Complex Types
+
+[cols="20%,25%,25%,30%",options="header"]
+|===
+| Trigger | Standalone Template | Inline Template | Description
+| `SingleEntity`
+| SAMM SingleEntity
+| SAMM Anonymous SingleEntity
+| Characteristic referencing a complex Entity type.
+| `Collection`
+| SAMM Collection
+| SAMM Anonymous Collection
+| General collection of elements referencing an `elementCharacteristic`.
+| `List`
+| SAMM List
+| SAMM Anonymous List
+| Ordered collection allowing duplicates.
+| `Set`
+| SAMM Set
+| SAMM Anonymous Set
+| Unordered collection of unique items.
+| `SortedSet`
+| SAMM SortedSet
+| SAMM Anonymous SortedSet
+| Ordered collection of unique items.
+| `TimeSeries`
+| SAMM TimeSeries
+| SAMM Anonymous TimeSeries
+| Temporal sequence of data points.
+| `Trait`
+| SAMM Trait
+| SAMM Anonymous Trait
+| Extends a base characteristic with one or more constraints.
+| `Either`
+| SAMM Either
+| SAMM Anonymous Either
+| Disjunctive choice between two characteristics (`left` or `right`).
+| `StructuredValue`
+| SAMM StructuredValue
+| SAMM Anonymous StructuredValue
+| Compound value constructed from multiple elements with a deconstruction rule.
+|===
+
+'''
+
+== 4. Constraint Types
+
+Constraints define validation rules and restrictions on characteristics. They can be declared as standalone top-level elements or as anonymous inline blank nodes under `samm-c:constraint`:
+
+[cols="22%,28%,25%,25%",options="header"]
+|===
+| Trigger | Standalone Template | Inline Template | Description
+| `RangeConstraint`
+| SAMM RangeConstraint
+| SAMM Anonymous RangeConstraint
+| Numeric or chronological boundaries (`minValue`, `maxValue`, `lowerBoundDefinition`, `upperBoundDefinition`).
+| `LengthConstraint`
+| SAMM LengthConstraint
+| SAMM Anonymous LengthConstraint
+| Minimum and maximum string length or collection cardinality.
+| `RegularExpressionConstraint`
+| SAMM RegularExpressionConstraint
+| SAMM Anonymous RegularExpressionConstraint
+| Pattern matching restriction using a regular expression (`samm:value "^[A-Z0-9]+$"`).
+| `EncodingConstraint`
+| SAMM EncodingConstraint
+| SAMM Anonymous EncodingConstraint
+| Character set encoding limitation (e.g., `samm:UTF-8`, `samm:US-ASCII`).
+| `LanguageConstraint`
+| SAMM LanguageConstraint
+| SAMM Anonymous LanguageConstraint
+| Permitted natural language code formatted according to ISO 639-1.
+| `LocaleConstraint`
+| SAMM LocaleConstraint
+| SAMM Anonymous LocaleConstraint
+| Permitted regional locale code formatted according to BCP 47.
+| `FixedPointConstraint`
+| SAMM FixedPointConstraint
+| SAMM Anonymous FixedPointConstraint
+| Fixed-point decimal number restrictions specifying integer digits and scale.
+|===
+
+TIP: When editing the object of `samm-c:constraint`, type `[` followed by the constraint name (e.g., `samm-c:constraint [RangeConstraint`) to insert the anonymous inline constraint `[ a samm-c:... ]` block with all required fields.
+
+'''
+
+[#element-attributes]
+== 5. Element Attributes
+
+Inside an element that already has a SAMM type (for example `:speed a samm:Property ;`), the extension offers snippets for the attributes (predicates) of that element type. Place the cursor where the next attribute would begin, usually on a new line after a `;`, and then do one of the following:
+
+* Trigger completion manually on an empty line (see <<manual-trigger,how to trigger completion>>) to list all attributes that fit the element.
+* Type a plain word, such as `pref` or `name` for `preferredName`, or `unit` for `samm-c:unit`.
+* Type a declared prefix, such as `samm:` or `samm-c:`, optionally followed by a part of the name (e.g., `samm:data`).
+
+Each attribute is inserted with the prefix of its own namespace. For example, `samm:dataType` uses the `samm:` prefix and `samm-c:unit` uses the `samm-c:` prefix. When you type a prefix, only the attributes of that namespace are shown: `samm:` lists `samm:dataType` but not `samm-c:unit`. While you are still typing the prefix, the word `samm` finds the attributes of both namespaces, and `samm-c` finds only the `samm-c:` attributes.
+
+=== Attributes per Element Type
+
+Every SAMM element gets `samm:preferredName`, `samm:description`, and `samm:see`. The following table lists the additional attributes for each element type:
+
+[cols="40%,60%",options="header"]
+|===
+| Element Type | Additional Attributes
+| `samm:Aspect`
+| `samm:properties`, `samm:operations`, `samm:events`
+| `samm:Property`
+| `samm:characteristic`, `samm:exampleValue`
+| `samm:AbstractProperty`
+| _None_
+| `samm:Entity`, `samm:AbstractEntity`
+| `samm:properties`, `samm:extends`
+| `samm:Operation`
+| `samm:input`, `samm:output`
+| `samm:Event`
+| `samm:parameters`
+| `samm:Value`
+| `samm:value`
+| `samm:Unit`
+| `samm:commonCode`, `samm:symbol`, `samm:referenceUnit`, `samm:conversionFactor`, `samm:numericConversionFactor`, `samm:quantityKind`
+| `samm:Characteristic`, `samm-c:Code`, `samm-c:SingleEntity`, `samm-c:TimeSeries`
+| `samm:dataType`
+| `samm-c:Enumeration`
+| `samm:dataType`, `samm-c:values`
+| `samm-c:State`
+| `samm:dataType`, `samm-c:values`, `samm-c:defaultValue`
+| `samm-c:Collection`, `samm-c:List`, `samm-c:Set`, `samm-c:SortedSet`
+| `samm:dataType`, `samm-c:elementCharacteristic`
+| `samm-c:Quantifiable`, `samm-c:Measurement`, `samm-c:Duration`
+| `samm:dataType`, `samm-c:unit`
+| `samm-c:Trait`
+| `samm-c:baseCharacteristic`, `samm-c:constraint`
+| `samm-c:Either`
+| `samm-c:left`, `samm-c:right`
+| `samm-c:StructuredValue`
+| `samm:dataType`, `samm-c:deconstructionRule`, `samm-c:elements`
+| `samm-c:LengthConstraint`
+| `samm-c:minValue`, `samm-c:maxValue`
+| `samm-c:RangeConstraint`
+| `samm-c:minValue`, `samm-c:maxValue`, `samm-c:lowerBoundDefinition`, `samm-c:upperBoundDefinition`
+| `samm-c:RegularExpressionConstraint`, `samm-c:EncodingConstraint`
+| `samm:value`
+| `samm-c:LanguageConstraint`
+| `samm-c:languageCode`
+| `samm-c:LocaleConstraint`
+| `samm-c:localeCode`
+| `samm-c:FixedPointConstraint`
+| `samm-c:scale`, `samm-c:integer`
+|===
+
+An attribute that the element already has is not offered again. The exceptions are `samm:see` and `samm-c:constraint`, which can appear more than once.
+
+=== Inserted Code
+
+Most attribute snippets insert the attribute with a placeholder for its value. Some examples:
+
+[cols="30%,70%",options="header"]
+|===
+| Template Name | Generated Code
+| SAMM preferredName
+| `+samm:preferredName "${1}"@en ;+`
+| SAMM see
+| `+samm:see <${1:https://example.com/term/}> ;+`
+| SAMM characteristic
+| `+samm:characteristic :${1:CharacteristicName} ;+`
+| SAMM input
+| `+samm:input ( :${1:inputProperty} ) ;+`
+| SAMM unit _(in a Measurement)_
+| `+samm-c:unit unit:${1:kilometrePerHour} ;+`
+|===
+
+Some snippets also offer a choice list or a typed literal:
+
+* *`samm:dataType`:* A dropdown with all SAMM data types (XSD types, `rdf:langString`, and `samm:curie`). For `Quantifiable` and `Measurement`, the dropdown contains only numeric types. For `Duration`, it starts with the XSD duration types, followed by the numeric types. For `Code` and `StructuredValue`, the snippet inserts `xsd:string`; for `SingleEntity` and `TimeSeries`, it inserts a placeholder for an Entity name.
+* *`samm-c:lowerBoundDefinition`, `samm-c:upperBoundDefinition`:* A dropdown with `samm-c:AT_LEAST` and `samm-c:GREATER_THAN`, or with `samm-c:AT_MOST` and `samm-c:LESS_THAN`.
+* *`samm:value` in an `EncodingConstraint`:* A dropdown with `samm:US-ASCII`, `samm:ISO-8859-1`, `samm:UTF-8`, `samm:UTF-16`, `samm:UTF-16BE`, and `samm:UTF-16LE`.
+* *Typed literals:* `samm-c:minValue` and `samm-c:maxValue` use `xsd:nonNegativeInteger` in a `LengthConstraint`, and an XSD type placeholder with the default `xsd:float` in a `RangeConstraint`. `samm-c:scale` and `samm-c:integer` use `xsd:positiveInteger`, and `samm:numericConversionFactor` uses `xsd:double`.
+
+NOTE: The completion service automatically adapts the trailing statement separator (`;`) to the surrounding Turtle syntax. If the next token already ends the statement (`;`, `.`, or `]`), no separator is added.
+
+'''
+
+== 6. Smart Attribute Value Suggestions
+
+In addition to full code snippets, the extension provides context-aware value completions when editing predicate values:
+
+* **Data Types (`samm:dataType`):** Generally suggests standard XSD types (`xsd:string`, `xsd:integer`, `xsd:boolean`, `xsd:decimal`, `xsd:dateTime`, etc.), `rdf:langString`, `samm:curie`, and entities defined in the current document. For `SingleEntity`, suggestions contain predefined SAMM entities (e.g., `samm-e:FileResource`) and entities from the current document, without primitive datatypes. For `TimeSeries`, suggestions contain `samm-e:TimeSeriesEntity` and entities in the current document that directly extend it.
+* **Measurement Units (`samm-c:unit`, `samm:referenceUnit`):** Search and auto-complete for more than 1,000 standard physical units from the SAMM unit catalog. When editing a `Duration`, suggestions are filtered to time units, with common units such as seconds, minutes, hours, and days prioritized.
+* **MIME Types (`samm-e:mimeType`):** Quick completion for standard MIME types (e.g., `application/json`, `text/turtle`, `application/pdf`, `image/png`, `model/step`) with human-readable format descriptions.
+* **Languages & Locales (`samm-c:languageCode`, `samm-c:localeCode`):** Full list of ISO 639-1 language codes (with common languages like `en`, `de`, `fr`, `es` prioritized) and a curated list of common BCP 47 locales (`en-US`, `de-DE`, etc.).
+* **Bounds (`samm-c:lowerBoundDefinition`, `samm-c:upperBoundDefinition`):** Suggests `samm-c:AT_LEAST` and `samm-c:GREATER_THAN` for lower bounds, and `samm-c:AT_MOST` and `samm-c:LESS_THAN` for upper bounds.
+* **Encodings (`samm:value` under `EncodingConstraint`):** Suggests standard character sets such as `samm:UTF-8`, `samm:US-ASCII`, `samm:ISO-8859-1`, `samm:UTF-16`, etc.
+* **Characteristics (`samm:characteristic`, `samm-c:elementCharacteristic`, `samm-c:baseCharacteristic`, `samm-c:left`, `samm-c:right`):** Auto-completes predefined characteristics (`samm-c:Text`, `samm-c:Timestamp`, etc.) and named characteristics defined in the current document. For a `SingleEntity` or `Duration` subject, predefined suggestions are restricted to `samm-c:SingleEntity` or `samm-c:Duration`, respectively; characteristics from the current document remain available.
+* **Booleans (`samm:optional`, `samm:notInPayload`):** Suggests `true` and `false`.
+* **Quantity Kinds (`samm:quantityKind`):** Suggests quantity kinds from the SAMM unit catalog using the document's unit prefix.
+* **Inheritance Targets (`samm:extends`):** For a Property or an inline property configuration in a `samm:properties` list, suggests abstract properties defined in the current document. For an Entity or AbstractEntity, suggests predefined SAMM entities and entities or abstract entities from the current document. If the subject type is unknown, both kinds of targets are offered.
+* **RDF Types (`a`, `rdf:type`):** Suggests SAMM core classes, characteristic classes, constraint classes, `samm:Unit`, and `samm:QuantityKind`. Inside an anonymous blank node, suggestions are scoped to the enclosing predicate where supported: for example, characteristic classes under `samm:characteristic`, constraint classes under `samm-c:constraint`, or `samm:Property` inside a `samm:properties` list.
+
+NOTE: Entity, characteristic, and abstract property references described above are collected from the current Turtle document. These suggestions do not scan other files in the workspace.
