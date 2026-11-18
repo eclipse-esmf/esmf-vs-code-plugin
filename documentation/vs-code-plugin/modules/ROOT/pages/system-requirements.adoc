@@ -6,4 +6,4 @@
 == Network Access
 
 Internet access is required to download the extension and SAMM CLI, check for updates, and resolve models from GitHub.
-The language server uses a local TCP connection on port `1846` by default.
+The extension starts the language server as a local process and communicates with it over standard input and output.
