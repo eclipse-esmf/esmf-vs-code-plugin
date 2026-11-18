@@ -3,5 +3,6 @@
 * xref:installation.adoc[Installation]
 * xref:getting-started.adoc[]
 * xref:features.adoc[]
+* xref:code-snippets.adoc[]
 * xref:support.adoc[]
 * xref:release-notes.adoc[]
