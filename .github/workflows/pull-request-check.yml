@@ -37,6 +37,9 @@ jobs:
 
       - name: Test
         run: xvfb-run -a npm run test
+        env:
+          # Authenticates the SAMM CLI release lookup to avoid GitHub's unauthenticated API rate limit.
+          GITHUB_TOKEN: ${{ github.token }}
 
       - name: Package VSIX
         run: npx @vscode/vsce package --out semantic-models-pr-${{ github.run_number }}.vsix

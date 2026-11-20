@@ -20,7 +20,7 @@ const OWNER = 'urn:samm:example.graphical:1.0.0#Aspect';
 const TARGET_ID = 'gv-header-aaaaaaaaaaaaaaaa';
 const createdUris: vscode.Uri[] = [];
 
-suite('Graphical View editor reuse acceptance', () => {
+suite('Graphical View editor reuse', () => {
     setup(async () => {
         await vscode.commands.executeCommand('workbench.action.closeAllEditors');
     });

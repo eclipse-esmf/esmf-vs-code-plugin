@@ -1,0 +1,19 @@
+# Normalize all text files to LF in the repository and in working copies on every OS.
+# Some build inputs are pinned by SHA-256 (scripts/webview-assets.mjs) and must not change on checkout.
+* text=auto eol=lf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.ttf binary
+*.otf binary
+*.woff binary
+*.woff2 binary
+*.jar binary
+*.zip binary
+*.gz binary
+*.tgz binary
+*.vsix binary

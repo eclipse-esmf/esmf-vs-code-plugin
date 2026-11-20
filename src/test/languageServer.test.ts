@@ -11,107 +11,119 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 
+// Runs against the real SAMM CLI language server (`samm lsp --stdio`).
+
 import * as assert from 'assert';
-import {ChildProcessWithoutNullStreams} from 'node:child_process';
-import {EventEmitter} from 'node:events';
-import {Readable, Writable} from 'node:stream';
+import * as path from 'node:path';
 import * as vscode from 'vscode';
-import type {ServerExitEvent} from '../languageServicesSupervisor';
+import {TurtleLanguageClient} from '../languageClient';
 import {TurtleLanguageServer} from '../languageServer';
-import type {ExtensionLogger} from '../outputChannel';
+import type {ServerExitEvent} from '../languageServicesSupervisor';
+import {
+    createSammCliServer,
+    EXTENSION_ROOT,
+    modelUri,
+    renderWhenLoaded,
+    SAMM_CLI_TIMEOUT_MS,
+    silentLogger,
+    TEST_NAMESPACE,
+} from './sammCliTestHarness';
 
-class FakeChild extends EventEmitter {
-    readonly pid = 4242;
-    readonly stdout = new Readable({read: () => undefined});
-    readonly stderr = new Readable({read: () => undefined});
-    readonly stdin = new Writable({write: (_chunk, _encoding, callback) => callback()});
-    exitCode: number | null = null;
-    signalCode: NodeJS.Signals | null = null;
-    killCount = 0;
+const MOVEMENT = modelUri('Movement.ttl');
 
-    kill(signal: NodeJS.Signals = 'SIGTERM'): boolean {
-        this.killCount++;
-        this.emitExit(null, signal);
-        return true;
-    }
-
-    emitExit(code: number | null, signal: NodeJS.Signals | null): void {
-        this.exitCode = code;
-        this.signalCode = signal;
-        this.emit('exit', code, signal);
-    }
+function waitForExit(server: TurtleLanguageServer): Promise<ServerExitEvent> {
+    return new Promise(resolve => {
+        const subscription = server.onExit(event => {
+            subscription.dispose();
+            resolve(event);
+        });
+    });
 }
 
-class TestLanguageServer extends TurtleLanguageServer {
-    readonly spawnCalls: Array<{executable: string; args: string[]}> = [];
+suite('TurtleLanguageServer lifecycle (real SAMM CLI)', function () {
+    this.timeout(SAMM_CLI_TIMEOUT_MS);
 
-    constructor(private readonly child: FakeChild, sammCliPath = '/tmp/test-samm-cli') {
-        const logger: ExtensionLogger = {
-            trace: () => undefined,
-            debug: () => undefined,
-            info: () => undefined,
-            warn: () => undefined,
-            error: () => undefined,
-        };
-        super({extensionPath: '/tmp/test-extension'} as vscode.ExtensionContext, logger, sammCliPath, {}, vscode.LogLevel.Off);
+    const servers: TurtleLanguageServer[] = [];
+    const clients: TurtleLanguageClient[] = [];
+
+    function startable(executable?: string): TurtleLanguageServer {
+        const server = createSammCliServer(executable);
+        servers.push(server);
+        return server;
     }
 
-    protected override createChildProcess(executable: string, args: string[]): ChildProcessWithoutNullStreams {
-        this.spawnCalls.push({executable, args});
-        return this.child as unknown as ChildProcessWithoutNullStreams;
-    }
-}
+    teardown(async () => {
+        await Promise.all(clients.splice(0).map(client => client.disconnect().catch(() => undefined)));
+        await Promise.all(servers.splice(0).map(server => server.stop()));
+    });
 
-suite('TurtleLanguageServer lifecycle', () => {
     test('starts the CLI over stdio without a TCP port', async () => {
-        const child = new FakeChild();
-        const server = new TestLanguageServer(child);
+        const server = startable();
         await server.start();
 
-        assert.deepStrictEqual(server.spawnCalls, [{executable: '/tmp/test-samm-cli', args: ['lsp', '--stdio']}]);
-        assert.strictEqual(server.getStreams().reader, child.stdout);
-        assert.strictEqual(server.getStreams().writer, child.stdin);
+        assert.ok(server.pid, 'expected a running server process');
+        const {reader, writer} = server.getStreams();
+        assert.ok(reader && writer);
+    });
+
+    test('serves language server requests over stdio', async () => {
+        const server = startable();
+        await server.start();
+        const client = new TurtleLanguageClient(silentLogger, server, vscode.LogLevel.Off);
+        clients.push(client);
+        await client.connect();
+        await vscode.window.showTextDocument(MOVEMENT);
+
+        const result = await renderWhenLoaded(client, MOVEMENT);
+
+        assert.match(result.svg ?? '', /<svg[\s>]/);
+        assert.ok(
+            result.targets.some(target => target.kind === 'elementHeader' && target.elementUrn === `${TEST_NAMESPACE}Movement`),
+        );
     });
 
     test('reports one immutable unexpected process exit with metadata', async () => {
-        const child = new FakeChild();
-        const server = new TestLanguageServer(child);
+        const server = startable();
+        await server.start();
+        const pid = server.pid;
         const events: ServerExitEvent[] = [];
         server.onExit(event => events.push(event));
-        await server.start();
+        const exited = waitForExit(server);
 
-        child.emitExit(134, 'SIGABRT');
-        child.emitExit(134, 'SIGABRT');
+        process.kill(pid!);
+        const event = await exited;
 
         assert.strictEqual(events.length, 1);
-        assert.deepStrictEqual(events[0], {pid: 4242, code: 134, signal: 'SIGABRT', expected: false});
-        assert.ok(Object.isFrozen(events[0]));
+        assert.strictEqual(event.pid, pid);
+        assert.strictEqual(event.expected, false);
+        assert.ok(Object.isFrozen(event));
         assert.strictEqual(server.pid, undefined);
     });
 
-    test('coalesces spawn error and later exit into one event', async () => {
-        const child = new FakeChild();
-        const server = new TestLanguageServer(child);
+    test('reports a spawn failure as one unexpected exit', async () => {
+        const server = startable(path.join(EXTENSION_ROOT, 'does-not-exist', 'samm'));
         const events: ServerExitEvent[] = [];
         server.onExit(event => events.push(event));
+        const exited = waitForExit(server);
+
         await server.start();
+        await exited;
 
-        child.emit('error', new Error('spawn failed'));
-        child.emitExit(1, null);
-
-        assert.deepStrictEqual(events, [{pid: 4242, code: null, signal: null, expected: false}]);
+        assert.deepStrictEqual(events, [{pid: undefined, code: null, signal: null, expected: false}]);
     });
 
     test('marks explicit cleanup expected and stop remains idempotent', async () => {
-        const child = new FakeChild();
-        const server = new TestLanguageServer(child);
+        const server = startable();
         const events: ServerExitEvent[] = [];
         server.onExit(event => events.push(event));
 
         await server.start();
+        const pid = server.pid;
+        await server.stop();
         await server.stop();
 
-        assert.strictEqual(child.killCount, 1);
-        assert.deepStrictEqual(events, [{pid: 4242, code: null, signal: 'SIGTERM', expected: true}]);
+        assert.strictEqual(events.length, 1);
+        assert.strictEqual(events[0].pid, pid);
+        assert.strictEqual(events[0].expected, true);
     });
 });

@@ -12,8 +12,17 @@
  */
 
 import * as assert from 'node:assert/strict';
-import type {GraphicalViewRenderResult} from '../graphicalViewProtocol';
+import {GRAPHICAL_VIEW_RENDER_REQUEST, GraphicalViewAttributeTarget, GraphicalViewRenderResult} from '../graphicalViewProtocol';
 import {acceptGraphicalViewResult, isGraphicalViewRenderResult} from '../graphicalViewResult';
+import {
+    openModel,
+    renderWhenLoaded,
+    SAMM_CLI_TIMEOUT_MS,
+    SammCliSession,
+    startSammCliSession,
+    TEST_NAMESPACE,
+    waitForDiagnostics,
+} from './sammCliTestHarness';
 
 const URI = 'file:///tmp/model.ttl';
 const OWNER = 'urn:samm:example.graphical:1.0.0#Aspect';
@@ -101,5 +110,66 @@ suite('Graphical View render-result validation', () => {
             targets: [{id, kind: 'elementHeader', elementUrn: OWNER}],
             warnings: [],
         }), true);
+    });
+});
+
+suite('Graphical View render-result validation (real SAMM CLI)', function () {
+    this.timeout(SAMM_CLI_TIMEOUT_MS);
+    let session: SammCliSession;
+
+    suiteSetup(async () => {
+        session = await startSammCliSession();
+    });
+
+    suiteTeardown(async () => {
+        await session?.dispose();
+    });
+
+    test('accepts the real header, multilingual attribute, and wrapped locator sidecars', async () => {
+        const vehicle = await openModel('Vehicle.ttl');
+        const result = await renderWhenLoaded(session.client, vehicle, true);
+
+        assert.equal(isGraphicalViewRenderResult(result), true, JSON.stringify(result.targets));
+        const accepted = acceptGraphicalViewResult(result, 1, true);
+        assert.equal(accepted.targetById.size, result.targets.length);
+        assert.ok(result.targets.some(target => target.kind === 'elementHeader' && target.elementUrn === `${TEST_NAMESPACE}Vehicle`));
+        // Position is defined in a second file of the same namespace.
+        assert.ok(result.targets.some(target => target.kind === 'elementHeader' && target.elementUrn === `${TEST_NAMESPACE}Position`));
+
+        const descriptions = result.targets.filter(
+            (target): target is GraphicalViewAttributeTarget =>
+                target.kind === 'attributeRow' && target.ownerUrn === `${TEST_NAMESPACE}Vehicle` && target.predicateUrn === PREDICATE,
+        );
+        assert.deepEqual([...new Set(descriptions.map(target => target.language))].sort(), ['de', 'en']);
+        assert.ok(
+            descriptions.filter(target => target.language === 'en').length > 1,
+            'the long English description should wrap into several rows',
+        );
+    });
+
+    test('accepts the Graphper marker descendant IDs of the real SVG', async () => {
+        const movement = await openModel('Movement.ttl');
+        const result = await renderWhenLoaded(session.client, movement, true);
+
+        assert.equal(isGraphicalViewRenderResult(result), true);
+        assert.ok(result.targets.length > 0);
+        for (const target of result.targets) {
+            assert.match(result.svg ?? '', new RegExp(`id="${target.id}_polygon"`));
+            assert.match(result.svg ?? '', new RegExp(`id="${target.id}_text_0"`));
+        }
+    });
+
+    // Skipped until esmf-sdk sends render warnings as strings: SAMM CLI 2.16.2 sends `[4]` instead of `["unresolvable"]`.
+    // Re-enable (change `test.skip` back to `test`) once a SAMM CLI release with the fix is available.
+    test.skip('accepts the real warning result for an unresolvable model', async () => {
+        const broken = await openModel('Broken.ttl');
+        await waitForDiagnostics(broken);
+        const result = await session.client.sendRequest<GraphicalViewRenderResult>(GRAPHICAL_VIEW_RENDER_REQUEST, {
+            uri: broken.toString(),
+            includeAttributeRows: true,
+        });
+
+        assert.deepEqual(result.warnings, ['unresolvable']);
+        assert.equal(isGraphicalViewRenderResult(result), true);
     });
 });
