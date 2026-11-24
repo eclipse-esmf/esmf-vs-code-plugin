@@ -12,8 +12,12 @@
  */
 
 import * as assert from 'assert';
+import * as path from 'node:path';
 import {PassThrough} from 'node:stream';
+import * as vscode from 'vscode';
 import type {RequestClient} from '../aspectValidation';
+import {TurtleLanguageClient} from '../languageClient';
+import type {TurtleLanguageServer} from '../languageServer';
 import {
     DisposableLike,
     LanguageServicesSupervisor,
@@ -23,6 +27,7 @@ import {
     SupervisorClock,
 } from '../languageServicesSupervisor';
 import type {ExtensionLogger} from '../outputChannel';
+import {createSammCliServer, EXTENSION_ROOT, openModel, renderWhenLoaded, SAMM_CLI_TIMEOUT_MS, silentLogger} from './sammCliTestHarness';
 
 class FakeClock implements SupervisorClock {
     currentTime = 0;
@@ -296,3 +301,131 @@ suite('LanguageServicesSupervisor', () => {
         assert.strictEqual(harness.notifications.length, 0);
     });
 });
+
+// Same wiring as extension.ts (real TurtleLanguageServer + TurtleLanguageClient); only time is faked so retry delays are deterministic.
+suite('LanguageServicesSupervisor (real SAMM CLI)', function () {
+    this.timeout(SAMM_CLI_TIMEOUT_MS);
+    let harness: ReturnType<typeof createRealHarness> | undefined;
+
+    teardown(async () => {
+        await harness?.supervisor.dispose();
+        harness = undefined;
+    });
+
+    function createRealHarness(executable?: string) {
+        const clock = new FakeClock();
+        const servers: TurtleLanguageServer[] = [];
+        const bindings: RequestClient[] = [];
+        const logs: string[] = [];
+        const notifications: string[] = [];
+        const supervisor = new LanguageServicesSupervisor({
+            useEmbeddedServer: () => true,
+            createServer: () => {
+                const server = createSammCliServer(executable);
+                servers.push(server);
+                return server;
+            },
+            createClient: server => new TurtleLanguageClient(silentLogger, server, vscode.LogLevel.Off),
+            setRequestClient: client => bindings.push(client),
+            unavailableClient: () => ({sendRequest: async () => Promise.reject(new Error('unavailable'))}),
+            notifyTerminal: async () => {
+                notifications.push('terminal');
+                return undefined;
+            },
+            showOutput: () => undefined,
+            showSettings: () => undefined,
+            logger: {...silentLogger, info: message => logs.push(message)},
+            clock,
+        });
+        const events = (event: string) => logs.filter(line => line.includes(`event=${event} `) || line.endsWith(`event=${event}`));
+        const activeClient = () => {
+            const client = bindings.at(-1);
+            return client instanceof TurtleLanguageClient ? client : undefined;
+        };
+        const retryDelays = () => clock.scheduledDelays.filter(delay => delay !== 180_000);
+        return {supervisor, clock, servers, bindings, logs, notifications, events, activeClient, retryDelays};
+    }
+
+    test('starts the real server and publishes a working request client', async () => {
+        harness = createRealHarness();
+        await harness.supervisor.start('test');
+
+        const client = harness.activeClient();
+        assert.ok(client, 'expected the real client to be published');
+        assert.ok(harness.servers[0].pid);
+        const result = await renderWhenLoaded(client, await openModel('Movement.ttl'));
+        assert.match(result.svg ?? '', /<svg[\s>]/);
+    });
+
+    test('recovers from a killed server with one replacement after the first retry delay', async () => {
+        harness = createRealHarness();
+        await harness.supervisor.start('test');
+        const firstClient = harness.activeClient();
+        const firstPid = harness.servers[0].pid!;
+
+        // Killing the process fires both the process-exit and the client-close signal.
+        process.kill(firstPid);
+        await waitUntil(() => harness!.events('retry-scheduled').length > 0 && harness!.events('cleanup').length > 0);
+        await delay(1000);
+
+        assert.strictEqual(harness.events('unexpected-failure').length, 1, harness.logs.join('\n'));
+        assert.deepStrictEqual(harness.retryDelays(), [1_000]);
+        assert.strictEqual(harness.activeClient(), undefined, 'requests must be unavailable while recovering');
+        assert.strictEqual(harness.servers.length, 1, 'no replacement before the retry delay elapses');
+
+        harness.clock.advance(1_000);
+        await waitUntil(() => harness!.events('running').length === 2);
+
+        const client = harness.activeClient();
+        assert.ok(client && client !== firstClient);
+        assert.strictEqual(harness.servers.length, 2);
+        assert.notStrictEqual(harness.servers[1].pid, firstPid);
+        const result = await renderWhenLoaded(client, await openModel('Movement.ttl'));
+        assert.match(result.svg ?? '', /<svg[\s>]/);
+    });
+
+    test('an explicit restart replaces the server without scheduling a retry', async () => {
+        harness = createRealHarness();
+        await harness.supervisor.start('test');
+        const firstPid = harness.servers[0].pid;
+
+        await harness.supervisor.restart('Manual restart command');
+        await delay(1000);
+
+        assert.ok(harness.activeClient());
+        assert.strictEqual(harness.servers.length, 2);
+        assert.strictEqual(harness.servers[0].pid, undefined, 'the previous server process must be stopped');
+        assert.notStrictEqual(harness.servers[1].pid, firstPid);
+        assert.deepStrictEqual(harness.retryDelays(), []);
+        assert.deepStrictEqual(harness.events('unexpected-failure'), []);
+    });
+
+    test('retries a missing executable with the exact delays and gives up with one terminal notification', async () => {
+        harness = createRealHarness(path.join(EXTENSION_ROOT, 'does-not-exist', 'samm'));
+        await harness.supervisor.start('test');
+        assert.strictEqual(harness.events('candidate-failed').length, 1, harness.logs.join('\n'));
+
+        for (const [index, retryDelay] of [1_000, 2_000, 4_000, 8_000].entries()) {
+            harness.clock.advance(retryDelay);
+            await waitUntil(() => harness!.events('candidate-failed').length === index + 2);
+        }
+        await waitUntil(() => harness!.notifications.length > 0);
+
+        assert.deepStrictEqual(harness.retryDelays(), [1_000, 2_000, 4_000, 8_000]);
+        assert.strictEqual(harness.servers.length, 5);
+        assert.deepStrictEqual(harness.notifications, ['terminal']);
+        assert.strictEqual(harness.activeClient(), undefined);
+    });
+});
+
+async function waitUntil(condition: () => boolean, timeoutMs = 60_000): Promise<void> {
+    const deadline = Date.now() + timeoutMs;
+    while (!condition()) {
+        assert.ok(Date.now() < deadline, 'Timed out waiting for the supervisor');
+        await delay(100);
+    }
+}
+
+function delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}

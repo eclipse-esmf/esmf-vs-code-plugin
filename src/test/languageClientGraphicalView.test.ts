@@ -21,6 +21,7 @@ import {
     GraphicalViewRenderResult,
     GraphicalViewResolveTargetResult,
 } from '../graphicalViewProtocol';
+import {modelUri, openModel, renderWhenLoaded, SAMM_CLI_TIMEOUT_MS, SammCliSession, startSammCliSession, TEST_NAMESPACE} from './sammCliTestHarness';
 
 suite('Graphical View typed LSP client', () => {
     test('forwards exact render and resolve methods, parameters, and cancellation token', async () => {
@@ -83,6 +84,75 @@ suite('Graphical View typed LSP client', () => {
         assert.equal(resolve.location, null);
         assert.equal(resolve.warning, null);
         cancellation.dispose();
+    });
+});
+
+suite('Graphical View typed LSP client (real SAMM CLI)', function () {
+    this.timeout(SAMM_CLI_TIMEOUT_MS);
+    let session: SammCliSession | undefined;
+    let cancellation: vscode.CancellationTokenSource;
+
+    setup(async () => {
+        session = await startSammCliSession();
+        cancellation = new vscode.CancellationTokenSource();
+    });
+
+    teardown(async () => {
+        cancellation.dispose();
+        await session?.dispose();
+        session = undefined;
+    });
+
+    test('render and both resolve methods return the wire shapes the extension expects', async () => {
+        const client = new LspGraphicalViewClient(session!.client);
+        const movement = await openModel('Movement.ttl');
+        await renderWhenLoaded(session!.client, movement);
+
+        const render = await client.render({uri: movement.toString(), includeAttributeRows: true}, cancellation.token);
+        const element = await client.resolveElement(
+            {sourceUri: movement.toString(), elementUrn: `${TEST_NAMESPACE}Movement`},
+            cancellation.token,
+        );
+        const attribute = await client.resolveAttribute(
+            {
+                sourceUri: movement.toString(),
+                ownerUrn: `${TEST_NAMESPACE}Movement`,
+                predicateUrn: 'urn:samm:org.eclipse.esmf.samm:meta-model:2.2.0#preferredName',
+                selection: 'singleOccurrence',
+                language: 'de',
+            },
+            cancellation.token,
+        );
+
+        assert.deepEqual(Object.keys(render).sort(), ['svg', 'targets', 'uri', 'warnings']);
+        assert.deepEqual(render.warnings, []);
+        for (const resolved of [element, attribute]) {
+            assert.deepEqual(Object.keys(resolved), ['location'], JSON.stringify(resolved));
+            assert.equal(vscode.Uri.parse(resolved.location!.uri).fsPath, modelUri('Movement.ttl').fsPath);
+        }
+    });
+
+    test('omits the location field of a resolve warning on the wire', async () => {
+        const client = new LspGraphicalViewClient(session!.client);
+        const movement = await openModel('Movement.ttl');
+        await renderWhenLoaded(session!.client, movement);
+
+        const missing = await client.resolveElement({sourceUri: movement.toString(), elementUrn: `${TEST_NAMESPACE}Missing`}, cancellation.token);
+
+        assert.deepEqual(missing, {warning: 'notFound'});
+    });
+
+    test('reports real transport availability without a second lifecycle state', async () => {
+        const client = new LspGraphicalViewClient(session!.client);
+        const events: boolean[] = [];
+        const subscription = client.onDidChangeAvailability(available => events.push(available));
+        assert.equal(client.isAvailable(), true);
+
+        await session!.client.disconnect();
+
+        assert.equal(client.isAvailable(), false);
+        assert.deepEqual(events, [false]);
+        subscription.dispose();
     });
 });
 

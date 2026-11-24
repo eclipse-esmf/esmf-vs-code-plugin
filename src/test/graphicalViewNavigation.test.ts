@@ -14,17 +14,20 @@
 import * as assert from 'node:assert/strict';
 import * as vscode from 'vscode';
 import {findReusableTextEditorViewColumn} from '../graphicalView';
-import {resolveGraphicalViewNavigation, validateGraphicalViewResolveResult} from '../graphicalViewNavigation';
-import type {GraphicalViewRenderResult} from '../graphicalViewProtocol';
+import {LspGraphicalViewClient} from '../graphicalViewClient';
+import {GraphicalViewNavigationResolution, resolveGraphicalViewNavigation, validateGraphicalViewResolveResult} from '../graphicalViewNavigation';
+import type {GraphicalViewAttributeTarget, GraphicalViewRenderResult, GraphicalViewTarget} from '../graphicalViewProtocol';
 import {
     createGraphicalViewDocument,
     createGraphicalViewHarness,
     flushPromises,
     openGraphicalView,
 } from './graphicalViewTestHarness';
+import {modelUri, openModel, renderWhenLoaded, SAMM_CLI_TIMEOUT_MS, SammCliSession, startSammCliSession, TEST_NAMESPACE} from './sammCliTestHarness';
 
 const OWNER = 'urn:samm:example.graphical:1.0.0#Aspect';
 const PREDICATE = 'urn:samm:org.eclipse.esmf.samm:meta-model:2.2.0#description';
+const PREFERRED_NAME = 'urn:samm:org.eclipse.esmf.samm:meta-model:2.2.0#preferredName';
 
 suite('Graphical View source navigation', () => {
     test('dispatches trusted element and language-qualified attribute locators to distinct LSP methods', async () => {
@@ -300,6 +303,96 @@ suite('Graphical View source navigation', () => {
         assert.equal(harness.window.warnings.length, 3);
         assert.ok(harness.window.warnings.every(message => !message.includes('hostile')));
         harness.controller.dispose();
+    });
+});
+
+suite('Graphical View source navigation (real SAMM CLI)', function () {
+    this.timeout(SAMM_CLI_TIMEOUT_MS);
+    let session: SammCliSession;
+    let client: LspGraphicalViewClient;
+    let cancellation: vscode.CancellationTokenSource;
+    let vehicle: vscode.Uri;
+    let targets: GraphicalViewTarget[];
+
+    suiteSetup(async () => {
+        session = await startSammCliSession();
+        client = new LspGraphicalViewClient(session.client);
+        cancellation = new vscode.CancellationTokenSource();
+        vehicle = await openModel('Vehicle.ttl');
+        targets = (await renderWhenLoaded(session.client, vehicle, true)).targets;
+    });
+
+    suiteTeardown(async () => {
+        cancellation?.dispose();
+        await session?.dispose();
+    });
+
+    async function navigate(target: GraphicalViewTarget): Promise<{uri: vscode.Uri; range: vscode.Range; document: vscode.TextDocument}> {
+        const resolution = await resolveGraphicalViewNavigation(client, vehicle.toString(), target, cancellation.token);
+        assert.equal(resolution.kind, 'location', JSON.stringify(resolution));
+        const {uri, range} = resolution as Extract<GraphicalViewNavigationResolution, {kind: 'location'}>;
+        return {uri, range, document: await vscode.workspace.openTextDocument(uri)};
+    }
+
+    function header(localName: string): GraphicalViewTarget {
+        const target = targets.find(candidate => candidate.kind === 'elementHeader' && candidate.elementUrn === `${TEST_NAMESPACE}${localName}`);
+        assert.ok(target, `no header target for ${localName}`);
+        return target;
+    }
+
+    function attributeRows(predicateUrn: string, language: string): GraphicalViewAttributeTarget[] {
+        return targets.filter(
+            (target): target is GraphicalViewAttributeTarget =>
+                target.kind === 'attributeRow'
+                && target.ownerUrn === `${TEST_NAMESPACE}Vehicle`
+                && target.predicateUrn === predicateUrn
+                && target.language === language,
+        );
+    }
+
+    test('navigates element headers to their definition, including one in another file', async () => {
+        const local = await navigate(header('Vehicle'));
+        assert.equal(local.uri.fsPath, vehicle.fsPath);
+        assert.equal(local.document.getText(local.range), 'Vehicle');
+
+        // The server returns the cross-file location as `file:/C:/...`; it must still map to the local file.
+        const crossFile = await navigate(header('Position'));
+        assert.equal(crossFile.uri.fsPath, modelUri('Position.ttl').fsPath);
+        assert.equal(crossFile.document.getText(crossFile.range), 'Position');
+    });
+
+    test('navigates multilingual attribute rows to the literal of the matching language', async () => {
+        const [german] = attributeRows(PREFERRED_NAME, 'de');
+        const [english] = attributeRows(PREFERRED_NAME, 'en');
+
+        const de = await navigate(german);
+        const en = await navigate(english);
+
+        assert.match(de.document.lineAt(de.range.start.line).text, /"Fahrzeug"@de/);
+        assert.match(en.document.lineAt(en.range.start.line).text, /"vehicle"@en/);
+    });
+
+    test('navigates every row of a wrapped attribute to the same literal', async () => {
+        const wrapped = attributeRows(PREDICATE, 'en');
+        assert.ok(wrapped.length > 1, 'the long English description should wrap into several rows');
+
+        const locations = await Promise.all(wrapped.map(navigate));
+
+        for (const location of locations) {
+            assert.ok(location.range.isEqual(locations[0].range));
+            assert.match(location.document.lineAt(location.range.start.line).text, /deliberately long English description/);
+        }
+    });
+
+    test('reports a missing element as no longer existing', async () => {
+        const resolution = await resolveGraphicalViewNavigation(
+            client,
+            vehicle.toString(),
+            {id: 'gv-header-00000000000000000000000000000000', kind: 'elementHeader', elementUrn: `${TEST_NAMESPACE}Missing`},
+            cancellation.token,
+        );
+
+        assert.deepEqual(resolution, {kind: 'warning', message: 'The graphical target no longer exists in the current model.'});
     });
 });
 

@@ -69,6 +69,11 @@ type Candidate = {
     subscriptions: DisposableLike[];
 };
 
+type StartingCandidate = {
+    generation: number;
+    failure?: 'process' | 'client';
+};
+
 const systemClock: SupervisorClock = {
     now: () => Date.now(),
     setTimeout: (callback, delayMs) => {
@@ -83,6 +88,7 @@ export class LanguageServicesSupervisor {
     private generation = 0;
     private automaticAttempt = 0;
     private current: Candidate | undefined;
+    private starting: StartingCandidate | undefined;
     private retryTimer: DisposableLike | undefined;
     private stableTimer: DisposableLike | undefined;
     private disposed = false;
@@ -139,11 +145,20 @@ export class LanguageServicesSupervisor {
 
         const candidate: Candidate = {generation, subscriptions: []};
         const startedAt = this.clock.now();
+        // A process exit or connection loss before the candidate is running fails this start attempt.
+        const starting: StartingCandidate = {generation};
+        this.starting = starting;
+        const throwIfStartupFailed = () => {
+            if (starting.failure) {
+                throw new Error(`unexpected ${starting.failure} failure during start-up`);
+            }
+        };
         try {
             if (this.options.useEmbeddedServer()) {
                 candidate.server = this.options.createServer();
                 candidate.subscriptions.push(candidate.server.onExit(event => this.onServerExit(generation, event)));
                 await candidate.server.start();
+                throwIfStartupFailed();
                 if (!this.isCurrent(generation)) {
                     await this.cleanupCandidate(candidate, 'stale-after-server-start');
                     return;
@@ -153,11 +168,13 @@ export class LanguageServicesSupervisor {
             candidate.client = this.options.createClient(candidate.server);
             candidate.subscriptions.push(candidate.client.onUnexpectedClose(() => this.onClientClose(generation)));
             await candidate.client.connect();
+            throwIfStartupFailed();
             if (!this.isCurrent(generation)) {
                 await this.cleanupCandidate(candidate, 'stale-after-client-connect');
                 return;
             }
 
+            this.starting = undefined;
             this.current = candidate;
             this.options.setRequestClient(candidate.client, generation);
             this.startStableTimer(generation);
@@ -179,6 +196,10 @@ export class LanguageServicesSupervisor {
             if (this.isCurrent(generation)) {
                 this.scheduleNextAttempt();
             }
+        } finally {
+            if (this.starting?.generation === generation) {
+                this.starting = undefined;
+            }
         }
     }
 
@@ -199,6 +220,11 @@ export class LanguageServicesSupervisor {
     }
 
     private handleUnexpectedFailure(generation: number, source: 'process' | 'client', details: Record<string, unknown>): void {
+        if (this.isCurrent(generation) && this.starting?.generation === generation) {
+            this.log('startup-failure', {generation, source, ...details});
+            this.starting.failure ??= source;
+            return;
+        }
         if (!this.isCurrent(generation) || this.current?.generation !== generation) {
             this.log('stale-failure-rejected', {generation, source, ...details});
             return;
