@@ -5,6 +5,18 @@
 * Syntax highlighting for `.ttl` files.
 * Document outline for navigating the current file.
 * Automatic syntax validation while typing, with diagnostics in the editor and the *Problems* view.
+* Intelligent code completion and snippet templates for SAMM elements and attributes (see xref:code-snippets.adoc[]).
+
+== Code Snippets and Auto-Completion
+
+The extension offers context-aware code snippets and intelligent value suggestions to accelerate Aspect Model authoring and reduce syntax errors:
+
+* *Prefix & Model Scaffolding:* Quickly scaffold namespace headers, Aspects, Entities, Properties, Characteristics, Constraints, and Units using tab-stop templates.
+* *Inline & Anonymous Definitions:* Define anonymous characteristics, constraints, and property configurations directly within collections and blank nodes.
+* *Element Attributes:* Insert the attributes that fit the current element type, such as `samm:dataType` for a Characteristic or `samm-c:unit` for a Measurement.
+* *Smart Attribute Suggestions:* Contextual completions for XSD data types, over 1,000 standard measurement units, MIME types, ISO language codes, and boundary conditions.
+
+For a comprehensive guide and list of all trigger keywords, see xref:code-snippets.adoc[Code Snippets and Auto-Completion].
 
 == Graphical View
 
