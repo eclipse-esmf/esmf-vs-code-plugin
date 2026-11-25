@@ -20,7 +20,7 @@ const OWNER = 'urn:samm:example.graphical:1.0.0#Aspect';
 const TARGET_ID = 'gv-header-aaaaaaaaaaaaaaaa';
 const createdUris: vscode.Uri[] = [];
 
-suite('Graphical View editor reuse acceptance', () => {
+suite('Graphical View editor reuse', () => {
     setup(async () => {
         await vscode.commands.executeCommand('workbench.action.closeAllEditors');
     });
@@ -44,11 +44,10 @@ suite('Graphical View editor reuse acceptance', () => {
         await vscode.window.showTextDocument(distracting, {viewColumn: vscode.ViewColumn.Two, preview: false});
 
         clickTarget(harness, source, 1, 7, 1, 13);
-        await waitForNavigation(source, new vscode.Selection(1, 7, 1, 13));
+        await waitForNavigation(source, new vscode.Selection(1, 7, 1, 13), vscode.ViewColumn.One);
 
         assert.equal(textTabs(source).length, 1);
         assert.equal(activeTextTabGroup(source)?.viewColumn, vscode.ViewColumn.One);
-        assert.ok(vscode.window.activeTextEditor?.selection.isEqual(new vscode.Selection(1, 7, 1, 13)));
         harness.controller.dispose();
     });
 
@@ -63,11 +62,10 @@ suite('Graphical View editor reuse acceptance', () => {
         assert.equal(textTabs(source)[0]?.isActive, false);
 
         clickTarget(harness, source, 1, 7, 1, 13);
-        await waitForNavigation(source, new vscode.Selection(1, 7, 1, 13));
+        await waitForNavigation(source, new vscode.Selection(1, 7, 1, 13), vscode.ViewColumn.One);
 
         assert.equal(textTabs(source).length, 1);
         assert.equal(activeTextTabGroup(source)?.viewColumn, vscode.ViewColumn.One);
-        assert.ok(vscode.window.activeTextEditor?.selection.isEqual(new vscode.Selection(1, 7, 1, 13)));
         harness.controller.dispose();
     });
 
@@ -81,11 +79,10 @@ suite('Graphical View editor reuse acceptance', () => {
         assert.equal(textTabs(target).length, 0);
 
         clickTarget(harness, target, 1, 7, 1, 13);
-        await waitForNavigation(target, new vscode.Selection(1, 7, 1, 13));
+        await waitForNavigation(target, new vscode.Selection(1, 7, 1, 13), vscode.ViewColumn.Two);
 
         assert.equal(textTabs(target).length, 1);
         assert.equal(activeTextTabGroup(target)?.viewColumn, vscode.ViewColumn.Two);
-        assert.ok(vscode.window.activeTextEditor?.selection.isEqual(new vscode.Selection(1, 7, 1, 13)));
         harness.controller.dispose();
     });
 
@@ -175,9 +172,13 @@ async function waitFor(predicate: () => boolean): Promise<void> {
     }
 }
 
-async function waitForNavigation(uri: vscode.Uri, selection: vscode.Selection): Promise<void> {
+// activeTextEditor follows keyboard focus, which does not move while the test window is in the background,
+// so navigation is observed through the active tab group and the selection of the editor visible in it.
+async function waitForNavigation(uri: vscode.Uri, selection: vscode.Selection, viewColumn: vscode.ViewColumn): Promise<void> {
     await waitFor(() => {
-        const editor = vscode.window.activeTextEditor;
-        return editor?.document.uri.toString() === uri.toString() && editor.selection.isEqual(selection);
+        const editor = vscode.window.visibleTextEditors.find(
+            candidate => candidate.viewColumn === viewColumn && candidate.document.uri.toString() === uri.toString(),
+        );
+        return vscode.window.tabGroups.activeTabGroup.viewColumn === viewColumn && editor?.selection.isEqual(selection) === true;
     });
 }

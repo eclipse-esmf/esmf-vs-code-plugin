@@ -14,7 +14,9 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 import {CloseAction, State} from 'vscode-languageclient/node';
+import {VALIDATE_DOCUMENT_REQUEST} from '../aspectValidation';
 import {createDoNotRestartErrorHandler, TURTLE_DOCUMENT_SELECTOR, TurtleLanguageClient} from '../languageClient';
+import {SAMM_CLI_TIMEOUT_MS, SammCliSession, startSammCliSession} from './sammCliTestHarness';
 
 suite('TurtleLanguageClient document selector', () => {
     test('document selector only matches editable turtle documents', () => {
@@ -105,5 +107,49 @@ suite('TurtleLanguageClient lifecycle', () => {
         await wrapper.disconnect();
 
         assert.strictEqual(stopCount, 1);
+    });
+});
+
+suite('TurtleLanguageClient lifecycle (real SAMM CLI)', function () {
+    this.timeout(SAMM_CLI_TIMEOUT_MS);
+    let session: SammCliSession | undefined;
+
+    teardown(async () => {
+        await session?.dispose();
+        session = undefined;
+    });
+
+    test('reports a lost server connection once and does not restart the server', async () => {
+        session = await startSammCliSession();
+        let closeCount = 0;
+        const closed = new Promise<void>(resolve =>
+            session!.client.onUnexpectedClose(() => {
+                closeCount++;
+                resolve();
+            }),
+        );
+
+        process.kill(session.server.pid!);
+        await closed;
+        // A restart would bring the client back to Running within this window.
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        assert.strictEqual(closeCount, 1);
+        assert.strictEqual(session.client.isAvailable(), false);
+        await assert.rejects(session.client.sendRequest(VALIDATE_DOCUMENT_REQUEST, {uri: 'file:///model.ttl'}), /not connected/);
+    });
+
+    test('does not report an explicit disconnect as a lost connection and rejects later requests', async () => {
+        session = await startSammCliSession();
+        let closeCount = 0;
+        session.client.onUnexpectedClose(() => closeCount++);
+
+        await session.client.disconnect();
+        await session.client.disconnect();
+        await session.server.stop();
+
+        assert.strictEqual(closeCount, 0);
+        assert.strictEqual(session.client.isAvailable(), false);
+        await assert.rejects(session.client.sendRequest(VALIDATE_DOCUMENT_REQUEST, {uri: 'file:///model.ttl'}), /not connected/);
     });
 });

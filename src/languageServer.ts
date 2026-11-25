@@ -48,10 +48,16 @@ export class TurtleLanguageServer {
             ? ['java', [...JAVA_OPTIONS, '-jar', this.sammCliExecutablePath, ...traceArgs, 'lsp', '--stdio']]
             : [this.sammCliExecutablePath, [...traceArgs, 'lsp', '--stdio']];
 
-        this.serverProcess = this.spawnProcess(executable, args);
-        this.serverStreams = {reader: this.serverProcess.stdout, writer: this.serverProcess.stdin};
+        const child = this.spawnProcess(executable, args);
+        this.serverProcess = child;
+        this.serverStreams = {reader: child.stdout, writer: child.stdin};
+        // Spawn failures (e.g. a missing executable) are reported asynchronously; surface them as a failed start.
+        await new Promise<void>((resolve, reject) => {
+            child.once('spawn', resolve);
+            child.once('error', reject);
+        });
         this.outputChannel.info(
-            `[language-server] event=spawned mode=${this.sammCliExecutablePath.endsWith('.jar') ? 'jar' : 'native'} transport=stdio pid=${String(this.serverProcess.pid)}`,
+            `[language-server] event=spawned mode=${this.sammCliExecutablePath.endsWith('.jar') ? 'jar' : 'native'} transport=stdio pid=${String(child.pid)}`,
         );
     }
 

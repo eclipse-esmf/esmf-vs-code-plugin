@@ -10,8 +10,10 @@
 // SPDX-License-Identifier: MPL-2.0
 
 import * as assert from 'assert';
+import {readFileSync} from 'node:fs';
 import * as vscode from 'vscode';
 import {AspectValidationController, VALIDATE_DOCUMENT_REQUEST} from '../aspectValidation';
+import {modelUri, openModel, SAMM_CLI_TIMEOUT_MS, SammCliSession, startSammCliSession, waitForDiagnostics} from './sammCliTestHarness';
 import {createValidationControllerHarness, createValidationDocument} from './validationTestHarness';
 
 async function withStubbedRegisterCommand(run: () => void | Promise<void>): Promise<void> {
@@ -125,5 +127,80 @@ suite('AspectValidationController', () => {
             const harness = createValidationControllerHarness();
             harness.controller.register({subscriptions: []} as unknown as vscode.ExtensionContext);
         });
+    });
+});
+
+suite('AspectValidationController (real SAMM CLI)', function () {
+    this.timeout(SAMM_CLI_TIMEOUT_MS);
+    let session: SammCliSession;
+
+    suiteSetup(async () => {
+        session = await startSammCliSession();
+    });
+
+    suiteTeardown(async () => {
+        await session?.dispose();
+    });
+
+    function createRealCliHarness() {
+        return createValidationControllerHarness({
+            request: async <R>(method: string, params?: unknown) => session.client.sendRequest<R>(method, params),
+        });
+    }
+
+    test('reports a valid model as successful on manual validation', async () => {
+        const harness = createRealCliHarness();
+        const document = await vscode.workspace.openTextDocument(await openModel('Movement.ttl'));
+
+        const result = await harness.controller.validateDocument(document, 'manual');
+
+        assert.strictEqual(result, 'validation_successful');
+        assert.deepStrictEqual(harness.window.infoMessages, ['Aspect validation completed without issues.']);
+        assert.deepStrictEqual(harness.window.errorMessages, []);
+    });
+
+    test('reports an invalid model as failed and publishes the problem as a diagnostic', async () => {
+        const harness = createRealCliHarness();
+        const uri = await openModel('Broken.ttl');
+        const document = await vscode.workspace.openTextDocument(uri);
+
+        const result = await harness.controller.validateDocument(document, 'manual');
+
+        assert.strictEqual(result, 'validation_failed');
+        assert.deepStrictEqual(harness.window.errorMessages, ['Aspect validation failed. See the Problems view for details.']);
+        const diagnostics = await waitForDiagnostics(uri);
+        assert.ok(
+            diagnostics.some(diagnostic => diagnostic.message.includes('characteristic') && diagnostic.message.includes('orphan')),
+            `Unexpected diagnostics: ${diagnostics.map(diagnostic => diagnostic.message).join(' | ')}`,
+        );
+    });
+
+    test('shows the summary in the status bar on save-triggered validation', async () => {
+        const success = createRealCliHarness();
+        await success.controller.validateDocument(await vscode.workspace.openTextDocument(await openModel('Movement.ttl')), 'save');
+        assert.ok(success.window.statusMessages.includes('Aspect validation completed without issues.'));
+        assert.deepStrictEqual(success.window.infoMessages, []);
+
+        const failure = createRealCliHarness();
+        await failure.controller.validateDocument(await vscode.workspace.openTextDocument(await openModel('Broken.ttl')), 'save');
+        assert.ok(failure.window.statusMessages.includes('Aspect validation failed. See the Problems view for details.'));
+        assert.deepStrictEqual(failure.window.errorMessages, []);
+    });
+
+    // Not runnable yet: SAMM CLI 2.16.2 fails with "Internal error" for untitled documents because
+    // ExternalModelFileCache.isCachedModelUri calls Path.of(uri), which throws FileSystemNotFoundException
+    // for the "untitled" scheme. Re-enable once esmf-sdk fixes it.
+    test.skip('validates an untitled document', async () => {
+        const harness = createRealCliHarness();
+        const document = await vscode.workspace.openTextDocument({
+            language: 'turtle',
+            content: readFileSync(modelUri('Movement.ttl').fsPath, 'utf8'),
+        });
+        assert.strictEqual(document.uri.scheme, 'untitled');
+
+        const result = await harness.controller.validateDocument(document, 'manual');
+
+        assert.strictEqual(result, 'validation_successful', `errors: ${harness.window.errorMessages.join(' | ')}`);
+        assert.deepStrictEqual(harness.window.infoMessages, ['Aspect validation completed without issues.']);
     });
 });
