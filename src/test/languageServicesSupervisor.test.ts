@@ -102,12 +102,14 @@ class FakeServer implements ManagedLanguageServer {
 class FakeClient implements ManagedLanguageClient {
     connects = 0;
     disconnects = 0;
+    duringConnect: (() => void) | undefined;
     private listeners = new Set<() => void>();
 
     constructor(private readonly connectFailure?: Error) {}
 
     async connect(): Promise<void> {
         this.connects++;
+        this.duringConnect?.();
         if (this.connectFailure) {
             throw this.connectFailure;
         }
@@ -133,7 +135,11 @@ class FakeClient implements ManagedLanguageClient {
 
 type Harness = ReturnType<typeof createHarness>;
 
-function createHarness(clientFailures: boolean[] = [], embedded = true) {
+function createHarness(
+    clientFailures: boolean[] = [],
+    embedded = true,
+    onClientCreated?: (client: FakeClient, server: FakeServer | undefined, index: number) => void,
+) {
     const clock = new FakeClock();
     const servers: FakeServer[] = [];
     const clients: FakeClient[] = [];
@@ -159,8 +165,10 @@ function createHarness(clientFailures: boolean[] = [], embedded = true) {
         },
         createClient: server => {
             clientServers.push(server);
-            const client = new FakeClient(clientFailures[clientIndex++] ? new Error('connect failed') : undefined);
+            const index = clientIndex++;
+            const client = new FakeClient(clientFailures[index] ? new Error('connect failed') : undefined);
             clients.push(client);
+            onClientCreated?.(client, server as FakeServer | undefined, index);
             return client;
         },
         setRequestClient: (client, generation) => bindings.push({client, generation}),
@@ -174,7 +182,8 @@ function createHarness(clientFailures: boolean[] = [], embedded = true) {
         logger,
         clock,
     });
-    return {supervisor, clock, servers, clients, clientServers, bindings, logs, notifications};
+    const events = (event: string) => logs.filter(line => line.includes(`event=${event} `) || line.endsWith(`event=${event}`));
+    return {supervisor, clock, servers, clients, clientServers, bindings, logs, notifications, events};
 }
 
 async function settle(): Promise<void> {
@@ -259,6 +268,33 @@ suite('LanguageServicesSupervisor', () => {
         assert.strictEqual(harness.clock.scheduledDelays.at(-1), 1_000);
         await harness.supervisor.dispose();
     });
+
+    for (const source of ['process', 'client'] as const) {
+        test(`fails and retries the start attempt when the ${source} fails while the client connects`, async () => {
+            // connect() still resolves, so only the startup-failure flag can reject this attempt.
+            const harness = createHarness([], true, (client, server, index) => {
+                if (index === 0) {
+                    client.duringConnect = () => (source === 'process' ? server!.exit() : client.close());
+                }
+            });
+            await start(harness);
+
+            assert.strictEqual(harness.events('startup-failure').length, 1, harness.logs.join('\n'));
+            assert.strictEqual(harness.events('candidate-failed').length, 1);
+            assert.deepStrictEqual(harness.events('running'), []);
+            assert.deepStrictEqual(harness.events('unexpected-failure'), []);
+            assert.ok(!harness.bindings.some(binding => binding.client === harness.clients[0]), 'the failed client must not be published');
+            assert.strictEqual(harness.servers[0].stops, 1);
+            assert.strictEqual(harness.clients[0].disconnects, 1);
+            assert.deepStrictEqual(harness.clock.scheduledDelays, [1_000]);
+
+            harness.clock.advance(1_000);
+            await settle();
+            assert.strictEqual(harness.servers.length, 2);
+            assert.strictEqual(harness.bindings.at(-1)?.client, harness.clients[1]);
+            await harness.supervisor.dispose();
+        });
+    }
 
     test('manual restart cancels a pending automatic retry', async () => {
         const harness = createHarness();

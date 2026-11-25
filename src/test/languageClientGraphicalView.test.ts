@@ -93,8 +93,8 @@ suite('Graphical View typed LSP client (real SAMM CLI)', function () {
     let cancellation: vscode.CancellationTokenSource;
 
     setup(async () => {
-        session = await startSammCliSession();
         cancellation = new vscode.CancellationTokenSource();
+        session = await startSammCliSession();
     });
 
     teardown(async () => {

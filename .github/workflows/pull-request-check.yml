@@ -35,11 +35,42 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Test
-        run: xvfb-run -a npm run test
+      # Restores the most recently saved CLI; the fetch step then reuses it or downloads a newer release.
+      - name: Restore SAMM CLI cache
+        id: samm-cli-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 #v6.1.0
+        with:
+          path: .samm-cli
+          key: samm-cli-${{ runner.os }}-${{ runner.arch }}-
+          restore-keys: samm-cli-${{ runner.os }}-${{ runner.arch }}-
+
+      # The only step with the token, so the test processes (VS Code, extension host, SAMM CLI) never see it.
+      - name: Fetch SAMM CLI
+        id: samm-cli
+        run: |
+          cli_path="$(node scripts/fetch-samm-cli.mjs)"
+          if [[ "$cli_path" != "$PWD/.samm-cli/"*/* ]]; then
+            echo "::error::Unexpected SAMM CLI path outside .samm-cli: $cli_path"
+            exit 1
+          fi
+          tag="${cli_path#"$PWD/.samm-cli/"}"
+          tag="${tag%%/*}"
+          find .samm-cli -mindepth 1 -maxdepth 1 ! -name "$tag" -exec rm -rf {} +
+          echo "SAMM_CLI_PATH=$cli_path" >> "$GITHUB_ENV"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
         env:
           # Authenticates the SAMM CLI release lookup to avoid GitHub's unauthenticated API rate limit.
           GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Save SAMM CLI cache
+        if: steps.samm-cli-cache.outputs.cache-matched-key != format('samm-cli-{0}-{1}-{2}', runner.os, runner.arch, steps.samm-cli.outputs.tag)
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 #v6.1.0
+        with:
+          path: .samm-cli
+          key: samm-cli-${{ runner.os }}-${{ runner.arch }}-${{ steps.samm-cli.outputs.tag }}
+
+      - name: Test
+        run: xvfb-run -a npm run test
 
       - name: Package VSIX
         run: npx @vscode/vsce package --out semantic-models-pr-${{ github.run_number }}.vsix

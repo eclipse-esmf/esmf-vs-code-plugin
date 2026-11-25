@@ -94,9 +94,13 @@ export async function renderWhenLoaded(
             uri: uri.toString(),
             includeAttributeRows,
         });
-        if (result.svg || Date.now() >= deadline) {
+        if (result.svg) {
             return result;
         }
+        assert.ok(
+            Date.now() < deadline,
+            `Timed out waiting for an SVG for ${uri.toString()}; last warnings: ${JSON.stringify(result.warnings)}`,
+        );
         await delay(200);
     }
 }

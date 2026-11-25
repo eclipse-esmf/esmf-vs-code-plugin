@@ -53,6 +53,8 @@ Use the command `Semantic Models: Select SAMM CLI Executable` to choose either:
 
 If the server cannot be downloaded or started, the extension shows an error and writes a detailed message in the Semantic Models output channel.
 
+`npm test` runs against the latest SAMM CLI release, which it downloads into `.samm-cli/`. To use a local build (a native executable or a `.jar`, which requires Java), set `SAMM_CLI_PATH`.
+
 ## Validation Behavior
 
 Fast feedback while typing:
