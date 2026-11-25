@@ -19,10 +19,11 @@ import {VscodeGraphicalViewPanelFactory} from './graphicalViewPanel';
 import {GitHubRepositoryValidator} from './githubRepositoryValidator';
 import {TurtleLanguageClient} from './languageClient';
 import {TurtleLanguageServer} from './languageServer';
-import {LanguageServicesMode, LanguageServicesSupervisor, TerminalAction} from './languageServicesSupervisor';
+import {LanguageServicesSupervisor, TerminalAction} from './languageServicesSupervisor';
 import type {ExtensionLogger} from './outputChannel';
 import {SammCliDownloader} from './sammCliDownloader';
 import {TurtleExtensionSettings} from './settings';
+import {TURTLE_ON_ENTER_RULES} from './turtleLanguageConfiguration';
 
 const SELECT_EXECUTABLE_COMMAND = 'semantic-models.selectSammCliExecutable';
 const SELECT_EXECUTABLE_TITLE = 'Select SAMM CLI Executable';
@@ -89,15 +90,7 @@ export async function activate(ctx: vscode.ExtensionContext): Promise<void> {
 
     context.subscriptions.push(
         vscode.languages.setLanguageConfiguration('turtle', {
-            onEnterRules: [
-                {
-                    beforeText: /\.\s*$/,
-                    action: {
-                        indentAction: vscode.IndentAction.Outdent,
-                        appendText: '\n',
-                    },
-                },
-            ],
+            onEnterRules: TURTLE_ON_ENTER_RULES,
         }),
     );
 
@@ -123,7 +116,7 @@ export async function activate(ctx: vscode.ExtensionContext): Promise<void> {
 
     void validateConfiguredGithubRepositories();
 
-    if (settings.isEmbeddedLanguageServerStartEnabled() && !settings.getSammCliPath()) {
+    if (settings.isEmbeddedLanguageServerEnabled() && !settings.getSammCliPath()) {
         const selection = await vscode.window.showErrorMessage(
             'No SAMM CLI path configured. Required for Language Server functionality.',
             'Select or download SAMM CLI Executable',
@@ -136,7 +129,7 @@ export async function activate(ctx: vscode.ExtensionContext): Promise<void> {
 
     void languageServicesSupervisor.start('extension activation');
 
-    if (settings.sammCliAutoUpdateIsEnabled() && settings.isEmbeddedLanguageServerStartEnabled()) {
+    if (settings.isEmbeddedLanguageServerEnabled() && settings.sammCliAutoUpdateIsEnabled()) {
         sammCliDownloader.checkForSammCliUpdates().catch(error => {
             outputChannel.error(`Failed to check for SAMM CLI updates: ${error instanceof Error ? error.message : String(error)}`);
         });
@@ -162,19 +155,15 @@ function scheduleGithubRepositoryValidation(): void {
 
 function createLanguageServicesSupervisor(): LanguageServicesSupervisor {
     return new LanguageServicesSupervisor({
-        configuration: () => ({
-            mode: settings.isEmbeddedLanguageServerStartEnabled() ? 'embedded' : 'external',
-            port: settings.getSammCliLspServerPort(),
-        }),
-        createServer: configuration => new TurtleLanguageServer(
+        useEmbeddedServer: () => settings.isEmbeddedLanguageServerEnabled(),
+        createServer: () => new TurtleLanguageServer(
             context,
             outputChannel,
             settings.getSammCliPath(),
-            configuration.port,
             settings.getSammCliLspEnvironmentVariables(),
             logOutputChannel.logLevel,
         ),
-        createClient: configuration => new TurtleLanguageClient(outputChannel, configuration.port, logOutputChannel.logLevel),
+        createClient: server => new TurtleLanguageClient(outputChannel, server, logOutputChannel.logLevel),
         setRequestClient: (client, generation) => {
             aspectValidationController.setClient(client, generation);
             graphicalViewController.setClient(
@@ -191,13 +180,9 @@ function createLanguageServicesSupervisor(): LanguageServicesSupervisor {
     });
 }
 
-async function notifyTerminalRecoveryFailure(mode: LanguageServicesMode): Promise<TerminalAction> {
-    const guidance =
-        mode === 'external'
-            ? 'Start or check the separately managed language server, then retry.'
-            : 'Check the configured SAMM CLI executable and extension settings.';
+async function notifyTerminalRecoveryFailure(): Promise<TerminalAction> {
     const selection = await vscode.window.showErrorMessage(
-        `The Turtle language server could not be recovered after four attempts. ${guidance}`,
+        'The Turtle language server could not be recovered after four attempts. Check the language server process and its startup configuration.',
         'Restart Now',
         'Show Language Server Output',
         'Check Extension Settings',
@@ -278,7 +263,6 @@ async function selectSammCliExecutable(): Promise<void> {
             return;
         }
         await settings.setSammCliPath(selectedPath);
-        await settings.setEmbeddedLanguageServerStartEnabled(true);
         restartReason = `Changed SAMM CLI to custom executable: ${selectedPath}`;
     } else {
         if (!pick.releaseTag) {
@@ -290,7 +274,6 @@ async function selectSammCliExecutable(): Promise<void> {
         }
         const downloadedPath = await sammCliDownloader.downloadRelease(pick.releaseTag, downloadType);
         await settings.setSammCliPath(downloadedPath);
-        await settings.setEmbeddedLanguageServerStartEnabled(true);
         restartReason = `Changed SAMM CLI to GitHub release ${pick.releaseTag} (${downloadType === 'jar' ? 'JAR' : 'native executable'})`;
     }
 

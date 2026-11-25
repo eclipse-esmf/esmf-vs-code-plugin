@@ -17,8 +17,6 @@ import type {ExtensionLogger} from './outputChannel';
 const RETRY_DELAYS_MS = [1_000, 2_000, 4_000, 8_000] as const;
 const STABLE_WINDOW_MS = 180_000;
 
-export type LanguageServicesMode = 'embedded' | 'external';
-
 export interface DisposableLike {
     dispose(): void;
 }
@@ -34,6 +32,7 @@ export interface ManagedLanguageServer {
     readonly pid?: number;
     start(): Promise<void>;
     stop(): Promise<void>;
+    getStreams(): {reader: NodeJS.ReadableStream; writer: NodeJS.WritableStream};
     onExit(listener: (event: ServerExitEvent) => void): DisposableLike;
 }
 
@@ -41,11 +40,6 @@ export interface ManagedLanguageClient extends RequestClient {
     connect(): Promise<void>;
     disconnect(): Promise<void>;
     onUnexpectedClose(listener: () => void): DisposableLike;
-}
-
-export interface LanguageServicesConfiguration {
-    mode: LanguageServicesMode;
-    port: number;
 }
 
 export interface SupervisorClock {
@@ -56,12 +50,12 @@ export interface SupervisorClock {
 export type TerminalAction = 'restart' | 'output' | 'settings' | undefined;
 
 export interface LanguageServicesSupervisorOptions {
-    configuration(): LanguageServicesConfiguration;
-    createServer(configuration: LanguageServicesConfiguration): ManagedLanguageServer;
-    createClient(configuration: LanguageServicesConfiguration): ManagedLanguageClient;
+    useEmbeddedServer(): boolean;
+    createServer(): ManagedLanguageServer;
+    createClient(server?: ManagedLanguageServer): ManagedLanguageClient;
     setRequestClient(client: RequestClient, generation: number): void;
     unavailableClient(): RequestClient;
-    notifyTerminal(mode: LanguageServicesMode): Promise<TerminalAction>;
+    notifyTerminal(): Promise<TerminalAction>;
     showOutput(): void;
     showSettings(): void;
     logger: ExtensionLogger;
@@ -70,7 +64,6 @@ export interface LanguageServicesSupervisorOptions {
 
 type Candidate = {
     generation: number;
-    mode: LanguageServicesMode;
     server?: ManagedLanguageServer;
     client?: ManagedLanguageClient;
     subscriptions: DisposableLike[];
@@ -144,12 +137,11 @@ export class LanguageServicesSupervisor {
             return;
         }
 
-        const configuration = this.options.configuration();
-        const candidate: Candidate = {generation, mode: configuration.mode, subscriptions: []};
+        const candidate: Candidate = {generation, subscriptions: []};
         const startedAt = this.clock.now();
         try {
-            if (configuration.mode === 'embedded') {
-                candidate.server = this.options.createServer(configuration);
+            if (this.options.useEmbeddedServer()) {
+                candidate.server = this.options.createServer();
                 candidate.subscriptions.push(candidate.server.onExit(event => this.onServerExit(generation, event)));
                 await candidate.server.start();
                 if (!this.isCurrent(generation)) {
@@ -158,7 +150,7 @@ export class LanguageServicesSupervisor {
                 }
             }
 
-            candidate.client = this.options.createClient(configuration);
+            candidate.client = this.options.createClient(candidate.server);
             candidate.subscriptions.push(candidate.client.onUnexpectedClose(() => this.onClientClose(generation)));
             await candidate.client.connect();
             if (!this.isCurrent(generation)) {
@@ -171,17 +163,14 @@ export class LanguageServicesSupervisor {
             this.startStableTimer(generation);
             this.log('running', {
                 generation,
-                mode: configuration.mode,
                 phase,
                 attempt: this.automaticAttempt,
-                port: configuration.port,
                 pid: candidate.server?.pid,
                 recoveryDurationMs: this.clock.now() - startedAt,
             });
         } catch (error) {
             this.log('candidate-failed', {
                 generation,
-                mode: configuration.mode,
                 phase,
                 attempt: this.automaticAttempt,
                 error: this.message(error),
@@ -276,9 +265,8 @@ export class LanguageServicesSupervisor {
         }
         this.terminalNotified = true;
         this.cancelTimers();
-        const mode = this.options.configuration().mode;
-        this.log('terminal-exhaustion', {generation: this.generation, mode, attempts: this.automaticAttempt});
-        const action = await this.options.notifyTerminal(mode);
+        this.log('terminal-exhaustion', {generation: this.generation, attempts: this.automaticAttempt});
+        const action = await this.options.notifyTerminal();
         if (action === 'restart') {
             await this.restart('terminal notification: Restart Now');
         } else if (action === 'output') {
@@ -305,7 +293,6 @@ export class LanguageServicesSupervisor {
         candidate.subscriptions.forEach(subscription => subscription.dispose());
         this.log('cleanup', {
             generation: candidate.generation,
-            mode: candidate.mode,
             reason,
             client: results[0].status,
             server: results[1].status,

@@ -43,10 +43,9 @@ class FakeChild extends EventEmitter {
 }
 
 class TestLanguageServer extends TurtleLanguageServer {
-    constructor(
-        private readonly child: FakeChild,
-        private readonly readiness: (child: FakeChild) => Promise<void> = async () => undefined,
-    ) {
+    readonly spawnCalls: Array<{executable: string; args: string[]}> = [];
+
+    constructor(private readonly child: FakeChild, sammCliPath = '/tmp/test-samm-cli') {
         const logger: ExtensionLogger = {
             trace: () => undefined,
             debug: () => undefined,
@@ -54,20 +53,27 @@ class TestLanguageServer extends TurtleLanguageServer {
             warn: () => undefined,
             error: () => undefined,
         };
-        super({extensionPath: '/tmp/test-extension'} as vscode.ExtensionContext, logger, '/tmp/test-samm-cli', 19461, {}, vscode.LogLevel.Off);
+        super({extensionPath: '/tmp/test-extension'} as vscode.ExtensionContext, logger, sammCliPath, {}, vscode.LogLevel.Off);
     }
 
-    protected override createChildProcess(): ChildProcessWithoutNullStreams {
+    protected override createChildProcess(executable: string, args: string[]): ChildProcessWithoutNullStreams {
+        this.spawnCalls.push({executable, args});
         return this.child as unknown as ChildProcessWithoutNullStreams;
-    }
-
-    protected override waitForServerPort(): Promise<void> {
-        return this.readiness(this.child);
     }
 }
 
 suite('TurtleLanguageServer lifecycle', () => {
-    test('reports one immutable unexpected post-ready exit with metadata', async () => {
+    test('starts the CLI over stdio without a TCP port', async () => {
+        const child = new FakeChild();
+        const server = new TestLanguageServer(child);
+        await server.start();
+
+        assert.deepStrictEqual(server.spawnCalls, [{executable: '/tmp/test-samm-cli', args: ['lsp', '--stdio']}]);
+        assert.strictEqual(server.getStreams().reader, child.stdout);
+        assert.strictEqual(server.getStreams().writer, child.stdin);
+    });
+
+    test('reports one immutable unexpected process exit with metadata', async () => {
         const child = new FakeChild();
         const server = new TestLanguageServer(child);
         const events: ServerExitEvent[] = [];
@@ -96,27 +102,13 @@ suite('TurtleLanguageServer lifecycle', () => {
         assert.deepStrictEqual(events, [{pid: 4242, code: null, signal: null, expected: false}]);
     });
 
-    test('fails immediately when the child exits during readiness', async () => {
+    test('marks explicit cleanup expected and stop remains idempotent', async () => {
         const child = new FakeChild();
-        const server = new TestLanguageServer(child, async current => {
-            current.emitExit(1, null);
-            throw new Error('The Turtle language server exited before it became ready.');
-        });
-
-        await assert.rejects(server.start(), /exited before it became ready/);
-        assert.strictEqual(server.pid, undefined);
-        assert.strictEqual(child.killCount, 0);
-    });
-
-    test('marks timeout cleanup expected and stop remains idempotent', async () => {
-        const child = new FakeChild();
-        const server = new TestLanguageServer(child, async () => {
-            throw new Error('Timed out waiting for the Turtle language server to start on port 19461.');
-        });
+        const server = new TestLanguageServer(child);
         const events: ServerExitEvent[] = [];
         server.onExit(event => events.push(event));
 
-        await assert.rejects(server.start(), /Timed out/);
+        await server.start();
         await server.stop();
 
         assert.strictEqual(child.killCount, 1);

@@ -51,6 +51,27 @@ suite('TurtleLanguageClient document selector', () => {
 });
 
 suite('TurtleLanguageClient lifecycle', () => {
+    test('omits an undefined cancellation token from requests', async () => {
+        let requestArgs: unknown[] = [];
+        const client = {
+            state: State.Running,
+            sendRequest: (...args: unknown[]) => {
+                requestArgs = args;
+                return Promise.resolve(undefined);
+            },
+        };
+        const wrapper = Object.create(TurtleLanguageClient.prototype) as unknown as {
+            client: typeof client;
+            sendRequest<R>(method: string, params?: unknown): Promise<R>;
+        };
+        wrapper.client = client;
+
+        const params = {uri: 'file:///model.ttl'};
+        await wrapper.sendRequest('validateDocumentNow', params);
+
+        assert.deepStrictEqual(requestArgs, ['validateDocumentNow', params]);
+    });
+
     test('uses DoNotRestart and reports a duplicate close only once', async () => {
         let closeCount = 0;
         const handler = createDoNotRestartErrorHandler(() => closeCount++);
